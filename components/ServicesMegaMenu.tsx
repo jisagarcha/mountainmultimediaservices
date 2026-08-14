@@ -5,9 +5,14 @@ import Link from "next/link";
 import { SERVICES_CATALOG, ServiceCategory } from "@/lib/servicesData";
 import { ChevronDown, ArrowRight, CreditCard, Gift, Printer, FileText, BookOpen, Briefcase, Calendar, Shirt, Layers, Camera, Image } from "lucide-react";
 
-export default function ServicesMegaMenu() {
+interface ServicesMegaMenuProps {
+  catalog?: ServiceCategory[];
+}
+
+export default function ServicesMegaMenu({ catalog }: ServicesMegaMenuProps = {}) {
+  const activeCatalog = catalog && catalog.length > 0 ? catalog : SERVICES_CATALOG;
   const [isOpen, setIsOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<ServiceCategory>(SERVICES_CATALOG[0]);
+  const [activeCategory, setActiveCategory] = useState<ServiceCategory>(activeCatalog[0]);
 
   const getCategoryIcon = (iconName: string) => {
     switch (iconName) {
@@ -58,7 +63,7 @@ export default function ServicesMegaMenu() {
               <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest px-3 py-1 mb-1">
                 Print Categories
               </div>
-              {SERVICES_CATALOG.map((cat) => {
+              {activeCatalog.map((cat) => {
                 const isSelected = activeCategory.id === cat.id;
 
                 return (

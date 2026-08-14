@@ -8,9 +8,10 @@ import ServicesMegaMenu from "./ServicesMegaMenu";
 
 interface SiteNavbarProps {
   branding?: any;
+  catalog?: any[];
 }
 
-export default function SiteNavbar({ branding }: SiteNavbarProps) {
+export default function SiteNavbar({ branding, catalog }: SiteNavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -24,15 +25,19 @@ export default function SiteNavbar({ branding }: SiteNavbarProps) {
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100 px-6 py-4 transition-all">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-md shadow-slate-900/10 group-hover:scale-105 transition">
-              <Mountain className="w-5 h-5 text-rose-500" />
+            <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-md shadow-slate-900/10 group-hover:scale-105 transition shrink-0 overflow-hidden">
+              {branding?.logoUrl ? (
+                <img src={branding.logoUrl} alt={siteName} className="w-full h-full object-contain p-1" />
+              ) : (
+                <Mountain className="w-5 h-5 text-rose-500" />
+              )}
             </div>
             <div>
-              <span className="text-xl font-black tracking-tight text-slate-950 block leading-none">
+              <span className="text-xl font-black tracking-tight text-slate-950 block leading-none whitespace-nowrap">
                 {siteName}
               </span>
-              <span className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase block mt-1">
-                Printing Press & Studio
+              <span className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase block mt-1 whitespace-nowrap">
+                {branding?.tagline || "Printing Press & Studio"}
               </span>
             </div>
           </Link>
@@ -47,7 +52,7 @@ export default function SiteNavbar({ branding }: SiteNavbarProps) {
             </Link>
 
             {/* Mega Menu Dropdown */}
-            <ServicesMegaMenu />
+            <ServicesMegaMenu catalog={catalog} />
 
             <Link
               href="/about"

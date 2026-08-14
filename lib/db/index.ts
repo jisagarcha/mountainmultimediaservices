@@ -24,4 +24,22 @@ const sqlite = new Database(dbPath);
 // Enable WAL mode for better concurrency and performance
 sqlite.pragma("journal_mode = WAL");
 
+// Safe auto-migration for newly added columns in SQLite
+try {
+  const columns = sqlite.prepare("PRAGMA table_info(branding)").all().map((c: any) => c.name);
+  if (columns.length > 0) {
+    if (!columns.includes("favicon_url")) {
+      sqlite.exec("ALTER TABLE branding ADD COLUMN favicon_url TEXT;");
+    }
+    if (!columns.includes("hero_image_url")) {
+      sqlite.exec("ALTER TABLE branding ADD COLUMN hero_image_url TEXT;");
+    }
+    if (!columns.includes("gradient_preset")) {
+      sqlite.exec("ALTER TABLE branding ADD COLUMN gradient_preset TEXT DEFAULT 'rose-emerald';");
+    }
+  }
+} catch (err) {
+  console.error("Auto-migration check notice:", err);
+}
+
 export const db = drizzle(sqlite, { schema });

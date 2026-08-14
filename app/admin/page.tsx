@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   getBranding,
+  getFullCatalog,
   getServices,
   getGallery,
   getTestimonials,
@@ -24,6 +25,7 @@ export default async function AdminPage() {
 
   const [
     brandingData,
+    catalogData,
     servicesData,
     galleryData,
     testimonialsData,
@@ -32,6 +34,7 @@ export default async function AdminPage() {
     settingsData,
   ] = await Promise.all([
     getBranding(),
+    getFullCatalog(),
     getServices(),
     getGallery(),
     getTestimonials(),
@@ -43,6 +46,7 @@ export default async function AdminPage() {
   return (
     <AdminDashboard
       initialBranding={brandingData}
+      initialCatalog={catalogData}
       initialServices={servicesData}
       initialGallery={galleryData}
       initialTestimonials={testimonialsData}
@@ -52,3 +56,4 @@ export default async function AdminPage() {
     />
   );
 }
+

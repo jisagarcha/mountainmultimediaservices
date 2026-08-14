@@ -1,10 +1,13 @@
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
+import { getDbCatalog } from "@/lib/db/queries";
 import ClientLandingPage from "@/components/ClientLandingPage";
 
 export const revalidate = 0; // Dynamic server rendering with SQLite
 
 export default async function Page() {
+  const catalog = await getDbCatalog();
+
   // 1. Fetch Branding
   const brandingList = await db.select().from(schema.branding).limit(1);
   const branding = brandingList[0] || {
@@ -45,6 +48,7 @@ export default async function Page() {
   return (
     <ClientLandingPage
       branding={branding}
+      catalog={catalog}
       services={services}
       gallery={gallery}
       testimonials={testimonials}
@@ -52,3 +56,4 @@ export default async function Page() {
     />
   );
 }
+

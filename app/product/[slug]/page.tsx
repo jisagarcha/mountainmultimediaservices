@@ -1,4 +1,4 @@
-import { getProductBySlug } from "@/lib/servicesData";
+import { getProductBySlugFromDb } from "@/lib/db/queries";
 import { notFound } from "next/navigation";
 import SiteNavbar from "@/components/SiteNavbar";
 import SiteFooter from "@/components/SiteFooter";
@@ -16,7 +16,7 @@ export default async function ProductDetailPage({
 }) {
   const { slug } = await params;
 
-  const match = getProductBySlug(slug);
+  const match = await getProductBySlugFromDb(slug);
   if (!match) {
     notFound();
   }

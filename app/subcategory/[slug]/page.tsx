@@ -1,4 +1,4 @@
-import { getSubcategoryBySlug } from "@/lib/servicesData";
+import { getSubcategoryBySlugFromDb } from "@/lib/db/queries";
 import { notFound } from "next/navigation";
 import SiteNavbar from "@/components/SiteNavbar";
 import SiteFooter from "@/components/SiteFooter";
@@ -16,7 +16,7 @@ export default async function SubcategoryPage({
 }) {
   const { slug } = await params;
 
-  const match = getSubcategoryBySlug(slug);
+  const match = await getSubcategoryBySlugFromDb(slug);
   if (!match) {
     notFound();
   }

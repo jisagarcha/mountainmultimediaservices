@@ -1,20 +1,13 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import AdminHeader from "./_components/AdminHeader";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({
-    headers: reqHeaders,
-  });
-
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {session?.user && <AdminHeader user={session.user} />}
+    <div className="min-h-screen bg-slate-50/70 text-slate-900 flex flex-col font-sans selection:bg-rose-500 selection:text-white">
       <main className="flex-1">{children}</main>
     </div>
   );

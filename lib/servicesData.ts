@@ -1,14 +1,16 @@
 export interface ServiceProduct {
-  id: string;
+  id: string | number;
   name: string;
   slug: string;
   description: string;
   paperSpec?: string;
+  price?: string;
+  imageUrl?: string;
   hasCustomSizesNote?: boolean;
 }
 
 export interface ServiceSubcategory {
-  id: string;
+  id: string | number;
   name: string;
   slug: string;
   description?: string;
@@ -18,7 +20,7 @@ export interface ServiceSubcategory {
 }
 
 export interface ServiceCategory {
-  id: string;
+  id: string | number;
   name: string;
   slug: string;
   description: string;

@@ -1,4 +1,4 @@
-import { SERVICES_CATALOG } from "@/lib/servicesData";
+import { getDbCatalog } from "@/lib/db/queries";
 import SiteNavbar from "@/components/SiteNavbar";
 import SiteFooter from "@/components/SiteFooter";
 import { db } from "@/lib/db";
@@ -9,6 +9,7 @@ import Link from "next/link";
 export const revalidate = 0;
 
 export default async function ServicesPage() {
+  const catalog = await getDbCatalog();
   const brandingList = await db.select().from(schema.branding).limit(1);
   const branding = brandingList[0] || {};
 
@@ -62,7 +63,7 @@ export default async function ServicesPage() {
 
       {/* Visual Category Catalog Section (No Number Counts) */}
       <section className="max-w-7xl mx-auto px-6 py-16 space-y-16">
-        {SERVICES_CATALOG.map((cat) => {
+        {catalog.map((cat) => {
           return (
             <div key={cat.id} id={cat.slug} className="space-y-6 scroll-mt-24 border-b border-slate-100 pb-16 last:border-b-0">
               {/* Category Header Card */}

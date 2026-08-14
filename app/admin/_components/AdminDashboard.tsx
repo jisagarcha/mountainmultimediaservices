@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { signOut } from "@/lib/auth-client";
 import {
   Palette,
   Briefcase,
@@ -22,28 +24,44 @@ import {
   Phone,
   Clock,
   MapPin,
+  Mountain,
+  Upload,
+  ChevronRight,
+  ChevronDown,
+  Layers,
+  ArrowRight,
+  Sparkles,
+  Search,
+  X,
+  ExternalLink,
+  ShieldCheck,
+  Filter,
   CheckCircle2,
-  Clock3,
+  AlertCircle,
+  LogOut,
 } from "lucide-react";
+import Link from "next/link";
 import {
   updateBranding,
-  createService,
-  updateService,
-  deleteService,
-  createGalleryItem,
-  updateGalleryItem,
-  deleteGalleryItem,
-  createTestimonial,
-  updateTestimonial,
-  deleteTestimonial,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  createSubcategory,
+  updateSubcategory,
+  deleteSubcategory,
+  createProduct,
+  updateProduct,
+  deleteProduct,
   updatePageSection,
   updateMessageStatus,
   deleteContactMessage,
   updateSiteSetting,
 } from "../actions";
+import { GRADIENT_PRESETS } from "@/lib/theme";
 
 interface AdminDashboardProps {
   initialBranding: any;
+  initialCatalog: any[];
   initialServices: any[];
   initialGallery: any[];
   initialTestimonials: any[];
@@ -54,6 +72,7 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({
   initialBranding,
+  initialCatalog,
   initialServices,
   initialGallery,
   initialTestimonials,
@@ -61,39 +80,96 @@ export default function AdminDashboard({
   initialMessages,
   initialSettings,
 }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState<
-    "branding" | "services" | "gallery" | "testimonials" | "sections" | "messages" | "settings"
-  >("branding");
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"branding" | "catalog" | "content" | "inquiries" | "settings">("branding");
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/admin/login");
+    router.refresh();
+  };
 
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // States
   const [branding, setBranding] = useState(initialBranding);
-  const [services, setServices] = useState(initialServices);
-  const [editingService, setEditingService] = useState<any | null>(null);
-  const [gallery, setGallery] = useState(initialGallery);
-  const [editingGallery, setEditingGallery] = useState<any | null>(null);
-  const [testimonials, setTestimonials] = useState(initialTestimonials);
-  const [editingTestimonial, setEditingTestimonial] = useState<any | null>(null);
+  const [catalog, setCatalog] = useState(initialCatalog);
   const [pageSections, setPageSections] = useState(initialPageSections);
   const [messages, setMessages] = useState(initialMessages);
   const [settings, setSettings] = useState(initialSettings);
 
-  const unreadCount = messages.filter((m) => m.status === "unread").length;
+  // Active Catalog selections
+  const [selectedCatId, setSelectedCatId] = useState<number | string>(initialCatalog[0]?.id || "");
+  const [selectedSubId, setSelectedSubId] = useState<number | string>("");
+
+  // Modal / Editing states
+  const [categoryModal, setCategoryModal] = useState<any | null>(null);
+  const [subcategoryModal, setSubcategoryModal] = useState<any | null>(null);
+  const [productModal, setProductModal] = useState<any | null>(null);
+
+  const unreadCount = useMemo(() => messages.filter((m) => m.status === "unread").length, [messages]);
+
+  // Derived Catalog Calculations
+  const activeCategory = useMemo(() => {
+    return catalog.find((c) => c.id === selectedCatId) || catalog[0] || null;
+  }, [catalog, selectedCatId]);
+
+  const activeSubcategory = useMemo(() => {
+    if (!activeCategory || !activeCategory.subcategories) return null;
+    return activeCategory.subcategories.find((s: any) => s.id === selectedSubId) || activeCategory.subcategories[0] || null;
+  }, [activeCategory, selectedSubId]);
+
+  const totalProductsCount = useMemo(() => {
+    return catalog.reduce((acc, cat) => {
+      const subCount = cat.subcategories ? cat.subcategories.reduce((sAcc: number, s: any) => sAcc + (s.products ? s.products.length : 0), 0) : 0;
+      return acc + subCount;
+    }, 0);
+  }, [catalog]);
 
   const showNotification = (text: string) => {
     setMsg(text);
     setTimeout(() => setMsg(""), 3500);
   };
 
-  // Branding
+  // Helper for native image upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, onSuccess: (url: string) => void) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.url) {
+        onSuccess(data.url);
+        showNotification("Image uploaded successfully!");
+      } else {
+        alert(data.error || "Upload failed");
+      }
+    } catch (err: any) {
+      alert("Error uploading file: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // BRANDING SAVE
   const handleSaveBranding = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
       await updateBranding(branding);
-      showNotification("Branding & Color preferences updated successfully!");
+      showNotification("Branding & Design preferences saved!");
     } catch (err: any) {
       alert(err.message || "Failed to update branding.");
     } finally {
@@ -101,24 +177,21 @@ export default function AdminDashboard({
     }
   };
 
-  // Services
-  const handleSaveService = async (data: any) => {
+  // CATEGORY ACTIONS
+  const handleSaveCategory = async (data: any) => {
     setSaving(true);
     try {
-      const featuresArr = typeof data.features === "string"
-        ? data.features.split("\n").filter((f: string) => f.trim())
-        : data.features;
-
       if (data.id) {
-        await updateService(data.id, { ...data, features: featuresArr });
-        setServices(services.map((s) => (s.id === data.id ? { ...data, features: JSON.stringify(featuresArr) } : s)));
-        showNotification("Service updated!");
+        await updateCategory(data.id, data);
+        setCatalog(catalog.map((c) => (c.id === data.id ? { ...c, ...data } : c)));
+        showNotification("Category updated!");
       } else {
-        await createService({ ...data, features: featuresArr });
-        showNotification("New service created!");
-        window.location.reload();
+        const created = await createCategory(data);
+        setCatalog([...catalog, { ...created, subcategories: [] }]);
+        setSelectedCatId(created.id);
+        showNotification("New category created!");
       }
-      setEditingService(null);
+      setCategoryModal(null);
     } catch (err: any) {
       alert(err.message || "Operation failed.");
     } finally {
@@ -126,31 +199,54 @@ export default function AdminDashboard({
     }
   };
 
-  const handleDeleteService = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this service?")) return;
+  const handleDeleteCategory = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this category? All subcategories and products inside will be deleted!")) return;
     try {
-      await deleteService(id);
-      setServices(services.filter((s) => s.id !== id));
-      showNotification("Service removed.");
+      await deleteCategory(id);
+      const nextCatalog = catalog.filter((c) => c.id !== id);
+      setCatalog(nextCatalog);
+      if (nextCatalog[0]) setSelectedCatId(nextCatalog[0].id);
+      showNotification("Category deleted.");
     } catch (err: any) {
-      alert(err.message || "Failed to delete.");
+      alert(err.message || "Failed to delete category.");
     }
   };
 
-  // Gallery
-  const handleSaveGallery = async (data: any) => {
+  // SUBCATEGORY ACTIONS
+  const handleSaveSubcategory = async (data: any) => {
     setSaving(true);
     try {
       if (data.id) {
-        await updateGalleryItem(data.id, data);
-        setGallery(gallery.map((g) => (g.id === data.id ? data : g)));
-        showNotification("Gallery item updated!");
+        await updateSubcategory(data.id, data);
+        setCatalog(
+          catalog.map((cat) => {
+            if (cat.id === activeCategory.id) {
+              return {
+                ...cat,
+                subcategories: cat.subcategories.map((s: any) => (s.id === data.id ? { ...s, ...data } : s)),
+              };
+            }
+            return cat;
+          })
+        );
+        showNotification("Subcategory updated!");
       } else {
-        await createGalleryItem(data);
-        showNotification("Gallery item added!");
-        window.location.reload();
+        const created = await createSubcategory(data);
+        setCatalog(
+          catalog.map((cat) => {
+            if (cat.id === activeCategory.id) {
+              return {
+                ...cat,
+                subcategories: [...cat.subcategories, { ...created, products: [] }],
+              };
+            }
+            return cat;
+          })
+        );
+        setSelectedSubId(created.id);
+        showNotification("New subcategory created!");
       }
-      setEditingGallery(null);
+      setSubcategoryModal(null);
     } catch (err: any) {
       alert(err.message || "Operation failed.");
     } finally {
@@ -158,31 +254,77 @@ export default function AdminDashboard({
     }
   };
 
-  const handleDeleteGallery = async (id: number) => {
-    if (!confirm("Remove this gallery item?")) return;
+  const handleDeleteSubcategory = async (id: number) => {
+    if (!confirm("Delete this subcategory and all products inside it?")) return;
     try {
-      await deleteGalleryItem(id);
-      setGallery(gallery.filter((g) => g.id !== id));
-      showNotification("Gallery item deleted.");
+      await deleteSubcategory(id);
+      setCatalog(
+        catalog.map((cat) => {
+          if (cat.id === activeCategory.id) {
+            return {
+              ...cat,
+              subcategories: cat.subcategories.filter((s: any) => s.id !== id),
+            };
+          }
+          return cat;
+        })
+      );
+      showNotification("Subcategory deleted.");
     } catch (err: any) {
-      alert(err.message || "Failed to delete.");
+      alert(err.message || "Failed to delete subcategory.");
     }
   };
 
-  // Testimonials
-  const handleSaveTestimonial = async (data: any) => {
+  // PRODUCT ACTIONS
+  const handleSaveProduct = async (data: any) => {
     setSaving(true);
     try {
       if (data.id) {
-        await updateTestimonial(data.id, data);
-        setTestimonials(testimonials.map((t) => (t.id === data.id ? data : t)));
-        showNotification("Testimonial updated!");
+        await updateProduct(data.id, data);
+        setCatalog(
+          catalog.map((cat) => {
+            if (cat.id === activeCategory.id) {
+              return {
+                ...cat,
+                subcategories: cat.subcategories.map((sub: any) => {
+                  if (sub.id === activeSubcategory.id) {
+                    return {
+                      ...sub,
+                      products: sub.products.map((p: any) => (p.id === data.id ? { ...p, ...data } : p)),
+                    };
+                  }
+                  return sub;
+                }),
+              };
+            }
+            return cat;
+          })
+        );
+        showNotification("Product updated!");
       } else {
-        await createTestimonial(data);
-        showNotification("Testimonial added!");
-        window.location.reload();
+        const created = await createProduct(data);
+        setCatalog(
+          catalog.map((cat) => {
+            if (cat.id === activeCategory.id) {
+              return {
+                ...cat,
+                subcategories: cat.subcategories.map((sub: any) => {
+                  if (sub.id === activeSubcategory.id) {
+                    return {
+                      ...sub,
+                      products: [...sub.products, created],
+                    };
+                  }
+                  return sub;
+                }),
+              };
+            }
+            return cat;
+          })
+        );
+        showNotification("New product created!");
       }
-      setEditingTestimonial(null);
+      setProductModal(null);
     } catch (err: any) {
       alert(err.message || "Operation failed.");
     } finally {
@@ -190,24 +332,42 @@ export default function AdminDashboard({
     }
   };
 
-  const handleDeleteTestimonial = async (id: number) => {
-    if (!confirm("Delete this testimonial?")) return;
+  const handleDeleteProduct = async (id: number) => {
+    if (!confirm("Delete this product?")) return;
     try {
-      await deleteTestimonial(id);
-      setTestimonials(testimonials.filter((t) => t.id !== id));
-      showNotification("Testimonial deleted.");
+      await deleteProduct(id);
+      setCatalog(
+        catalog.map((cat) => {
+          if (cat.id === activeCategory.id) {
+            return {
+              ...cat,
+              subcategories: cat.subcategories.map((sub: any) => {
+                if (sub.id === activeSubcategory.id) {
+                  return {
+                    ...sub,
+                    products: sub.products.filter((p: any) => p.id !== id),
+                  };
+                }
+                return sub;
+              }),
+            };
+          }
+          return cat;
+        })
+      );
+      showNotification("Product deleted.");
     } catch (err: any) {
-      alert(err.message || "Failed to delete.");
+      alert(err.message || "Failed to delete product.");
     }
   };
 
-  // Sections
+  // GENERAL CONTENT ACTIONS
   const handleUpdateSection = async (sec: any) => {
     setSaving(true);
     try {
       await updatePageSection(sec.id, sec);
       setPageSections(pageSections.map((s) => (s.id === sec.id ? sec : s)));
-      showNotification(`Section '${sec.sectionKey}' updated.`);
+      showNotification(`Section copy updated!`);
     } catch (err: any) {
       alert(err.message || "Failed to update section.");
     } finally {
@@ -215,42 +375,31 @@ export default function AdminDashboard({
     }
   };
 
-  // Messages Status
   const handleStatusChange = async (id: number, status: "unread" | "read" | "replied") => {
     try {
       await updateMessageStatus(id, status);
       setMessages(messages.map((m) => (m.id === id ? { ...m, status } : m)));
-      showNotification(`Message marked as ${status}.`);
+      showNotification(`Inquiry marked as ${status}.`);
     } catch (err: any) {
       alert(err.message || "Status update failed.");
     }
   };
 
   const handleDeleteMessage = async (id: number) => {
-    if (!confirm("Delete this customer message?")) return;
+    if (!confirm("Delete this customer inquiry?")) return;
     try {
       await deleteContactMessage(id);
       setMessages(messages.filter((m) => m.id !== id));
-      showNotification("Message deleted.");
+      showNotification("Inquiry deleted.");
     } catch (err: any) {
-      alert(err.message || "Failed to delete.");
+      alert(err.message || "Failed to delete inquiry.");
     }
   };
 
-  // Settings
   const handleSaveSetting = async (key: string, value: string) => {
     setSaving(true);
     try {
       await updateSiteSetting(key, value);
-      setSettings((prev) => {
-        const idx = prev.findIndex((s) => s.key === key);
-        if (idx >= 0) {
-          const next = [...prev];
-          next[idx] = { ...next[idx], value };
-          return next;
-        }
-        return [...prev, { key, value }];
-      });
       showNotification(`Setting '${key}' saved.`);
     } catch (err: any) {
       alert(err.message || "Failed to save setting.");
@@ -260,907 +409,1013 @@ export default function AdminDashboard({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-slate-100/70 text-slate-900 font-sans selection:bg-rose-500 selection:text-white pb-24">
       {/* Toast Notification */}
       {msg && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-500 text-slate-950 font-semibold px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 animate-bounce">
-          <Check className="w-5 h-5" />
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-950 text-white font-extrabold px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom duration-200 text-xs border border-rose-500/30">
+          <div className="w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center shrink-0">
+            <Check className="w-3.5 h-3.5" />
+          </div>
           <span>{msg}</span>
         </div>
       )}
 
-      {/* Admin Tabs Bar */}
-      <div className="flex flex-wrap items-center gap-2 mb-8 bg-slate-900/80 p-2 rounded-2xl border border-slate-800">
-        <button
-          onClick={() => setActiveTab("branding")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition ${
-            activeTab === "branding"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/25"
-              : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-          }`}
-        >
-          <Palette className="w-4 h-4" />
-          <span>Branding & Colors</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("services")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition ${
-            activeTab === "services"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/25"
-              : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-          }`}
-        >
-          <Briefcase className="w-4 h-4" />
-          <span>Services ({services.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("gallery")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition ${
-            activeTab === "gallery"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/25"
-              : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-          }`}
-        >
-          <ImageIcon className="w-4 h-4" />
-          <span>Gallery ({gallery.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("testimonials")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition ${
-            activeTab === "testimonials"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/25"
-              : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-          }`}
-        >
-          <MessageSquareQuote className="w-4 h-4" />
-          <span>Testimonials ({testimonials.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("sections")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition ${
-            activeTab === "sections"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/25"
-              : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-          }`}
-        >
-          <Layout className="w-4 h-4" />
-          <span>Page Sections</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("messages")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition relative ${
-            activeTab === "messages"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/25"
-              : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-          }`}
-        >
-          <Inbox className="w-4 h-4" />
-          <span>Inquiries ({messages.length})</span>
-          {unreadCount > 0 && (
-            <span className="px-1.5 py-0.5 text-[10px] bg-amber-500 text-slate-950 rounded-full font-bold">
-              {unreadCount}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab("settings")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition ${
-            activeTab === "settings"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/25"
-              : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          <span>Site Settings</span>
-        </button>
-      </div>
-
-      {/* TAB 1: BRANDING */}
-      {activeTab === "branding" && (
-        <form onSubmit={handleSaveBranding} className="space-y-6">
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-bold text-slate-100">Theme Colors & Palette</h2>
-                <p className="text-xs text-slate-400">Bhaktapur brand colors (Navy, Sky Blue, Lime/Gold Accent).</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-mono text-slate-300">
-                  <div className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ backgroundColor: branding.primaryColor }} />
-                  <span>{branding.primaryColor}</span>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-mono text-slate-300">
-                  <div className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ backgroundColor: branding.secondaryColor }} />
-                  <span>{branding.secondaryColor}</span>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-mono text-slate-300">
-                  <div className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ backgroundColor: branding.accentColor }} />
-                  <span>{branding.accentColor}</span>
-                </div>
-              </div>
+      {/* TOPBAR HEADER */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-full bg-slate-950 text-white flex items-center justify-center shadow-md shrink-0 overflow-hidden">
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
+              ) : (
+                <Mountain className="w-5 h-5 text-rose-500" />
+              )}
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                <label className="block text-xs font-semibold text-slate-300 mb-2">Primary Color</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={branding.primaryColor || "#0f172a"}
-                    onChange={(e) => setBranding({ ...branding, primaryColor: e.target.value })}
-                    className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
-                  />
-                  <input
-                    type="text"
-                    value={branding.primaryColor || "#0f172a"}
-                    onChange={(e) => setBranding({ ...branding, primaryColor: e.target.value })}
-                    className="flex-1 bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-lg px-3 py-2 outline-none font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                <label className="block text-xs font-semibold text-slate-300 mb-2">Secondary Color</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={branding.secondaryColor || "#0284c7"}
-                    onChange={(e) => setBranding({ ...branding, secondaryColor: e.target.value })}
-                    className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
-                  />
-                  <input
-                    type="text"
-                    value={branding.secondaryColor || "#0284c7"}
-                    onChange={(e) => setBranding({ ...branding, secondaryColor: e.target.value })}
-                    className="flex-1 bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-lg px-3 py-2 outline-none font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                <label className="block text-xs font-semibold text-slate-300 mb-2">Accent Color</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={branding.accentColor || "#84cc16"}
-                    onChange={(e) => setBranding({ ...branding, accentColor: e.target.value })}
-                    className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
-                  />
-                  <input
-                    type="text"
-                    value={branding.accentColor || "#84cc16"}
-                    onChange={(e) => setBranding({ ...branding, accentColor: e.target.value })}
-                    className="flex-1 bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-lg px-3 py-2 outline-none font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-            <h2 className="text-lg font-bold text-slate-100">Shop Identity & Contact Details</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Shop Name</label>
-                <input
-                  type="text"
-                  value={branding.siteName || ""}
-                  onChange={(e) => setBranding({ ...branding, siteName: e.target.value })}
-                  className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-sky-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Tagline</label>
-                <input
-                  type="text"
-                  value={branding.tagline || ""}
-                  onChange={(e) => setBranding({ ...branding, tagline: e.target.value })}
-                  className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-sky-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Contact Email</label>
-                <input
-                  type="email"
-                  value={branding.contactEmail || ""}
-                  onChange={(e) => setBranding({ ...branding, contactEmail: e.target.value })}
-                  className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-sky-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Phone Numbers</label>
-                <input
-                  type="text"
-                  value={branding.contactPhone || ""}
-                  onChange={(e) => setBranding({ ...branding, contactPhone: e.target.value })}
-                  className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-sky-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Opening Hours</label>
-                <input
-                  type="text"
-                  value={branding.openingHours || ""}
-                  onChange={(e) => setBranding({ ...branding, openingHours: e.target.value })}
-                  className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-sky-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Shop Address</label>
-                <input
-                  type="text"
-                  value={branding.address || ""}
-                  onChange={(e) => setBranding({ ...branding, address: e.target.value })}
-                  className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-sky-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-white font-semibold px-6 py-3 rounded-xl shadow-lg shadow-sky-500/20 transition disabled:opacity-50"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              <span>Save Branding Settings</span>
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* TAB 2: SERVICES */}
-      {activeTab === "services" && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-white">All 18 Printing & Studio Services</h2>
-              <p className="text-xs text-slate-400">Public offerings shown on the home page.</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-black tracking-tight text-slate-950 block leading-none whitespace-nowrap">
+                  {branding.siteName || "Mountain Multimedia Service"}
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase border border-emerald-200 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Sync
+                </span>
+              </div>
+              <span className="text-[10px] text-rose-600 font-extrabold tracking-wider uppercase block mt-1 whitespace-nowrap">
+                Admin Control Dashboard
+              </span>
             </div>
-            <button
-              onClick={() =>
-                setEditingService({
-                  title: "",
-                  slug: "",
-                  description: "",
-                  price: "From Rs. 100",
-                  icon: "Camera",
-                  features: "Feature 1\nFeature 2",
-                  isActive: true,
-                })
-              }
-              className="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition shadow-lg shadow-sky-500/20"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add New Service</span>
-            </button>
           </div>
 
-          {editingService && (
-            <div className="bg-slate-900 border border-sky-500/40 rounded-2xl p-6 space-y-4 shadow-2xl">
-              <h3 className="text-md font-bold text-sky-400">
-                {editingService.id ? "Edit Service" : "New Service"}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={editingService.title}
-                    onChange={(e) => setEditingService({ ...editingService, title: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Price Cue</label>
-                  <input
-                    type="text"
-                    value={editingService.price}
-                    onChange={(e) => setEditingService({ ...editingService, price: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs text-slate-400 mb-1">Description</label>
-                  <textarea
-                    rows={2}
-                    value={editingService.description}
-                    onChange={(e) => setEditingService({ ...editingService, description: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs text-slate-400 mb-1">Features (One per line)</label>
-                  <textarea
-                    rows={3}
-                    value={
-                      typeof editingService.features === "string"
-                        ? editingService.features
-                        : Array.isArray(editingService.features)
-                        ? editingService.features.join("\n")
-                        : ""
-                    }
-                    onChange={(e) => setEditingService({ ...editingService, features: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white font-mono"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingService(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-xs text-slate-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSaveService(editingService)}
-                  disabled={saving}
-                  className="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-xs text-white font-semibold flex items-center gap-1.5"
-                >
-                  {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Save Service</span>
-                </button>
-              </div>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              target="_blank"
+              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs transition flex items-center gap-2 border border-slate-200"
+            >
+              <span>View Public Website</span>
+              <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+            </Link>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map((item) => {
-              const features = typeof item.features === "string" ? JSON.parse(item.features || "[]") : item.features || [];
-              return (
-                <div key={item.id} className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-lg relative flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <span className="text-xs font-semibold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2.5 py-0.5 rounded-full">
-                          {item.price}
-                        </span>
-                        <h3 className="text-md font-bold text-white mt-2">{item.title}</h3>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() =>
-                            setEditingService({
-                              ...item,
-                              features: features.join("\n"),
-                            })
-                          }
-                          className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-sky-400"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteService(item.id)}
-                          className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-red-400"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-300 mb-4">{item.description}</p>
-                  </div>
-                  <ul className="space-y-1 border-t border-slate-800/80 pt-3">
-                    {features.map((feat: string, idx: number) => (
-                      <li key={idx} className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                        <Check className="w-3 h-3 text-emerald-400 shrink-0" />
-                        <span>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
+            <button
+              onClick={handleSignOut}
+              className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/20 transition flex items-center gap-1.5"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </button>
           </div>
         </div>
-      )}
+      </header>
 
-      {/* TAB 3: GALLERY */}
-      {activeTab === "gallery" && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-white">Portfolio Gallery</h2>
-              <p className="text-xs text-slate-400">Categorized sample work items.</p>
+      {/* MAIN LAYOUT */}
+      <div className="max-w-7xl mx-auto px-6 pt-6 space-y-6">
+        {/* STATS CUE BANNER */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+              <Layers className="w-6 h-6" />
             </div>
-            <button
-              onClick={() =>
-                setEditingGallery({
-                  title: "",
-                  category: "Printing",
-                  imageUrl: "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=80",
-                  videoUrl: "",
-                  description: "",
-                })
-              }
-              className="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition shadow-lg shadow-sky-500/20"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Gallery Image</span>
-            </button>
+            <div>
+              <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                Top Categories
+              </span>
+              <span className="text-2xl font-black text-slate-950">{catalog.length}</span>
+            </div>
           </div>
 
-          {editingGallery && (
-            <div className="bg-slate-900 border border-sky-500/40 rounded-2xl p-6 space-y-4 shadow-2xl">
-              <h3 className="text-md font-bold text-sky-400">
-                {editingGallery.id ? "Edit Item" : "Add New Item"}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={editingGallery.title}
-                    onChange={(e) => setEditingGallery({ ...editingGallery, title: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Category</label>
-                  <select
-                    value={editingGallery.category}
-                    onChange={(e) => setEditingGallery({ ...editingGallery, category: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
-                  >
-                    <option value="Photography">Photography</option>
-                    <option value="Printing">Printing</option>
-                    <option value="T-Shirt & Mug">T-Shirt & Mug</option>
-                    <option value="ID Cards">ID Cards</option>
-                    <option value="Wedding Cards">Wedding Cards</option>
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs text-slate-400 mb-1">Image URL</label>
-                  <input
-                    type="text"
-                    value={editingGallery.imageUrl}
-                    onChange={(e) => setEditingGallery({ ...editingGallery, imageUrl: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white font-mono"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs text-slate-400 mb-1">Description</label>
-                  <input
-                    type="text"
-                    value={editingGallery.description || ""}
-                    onChange={(e) => setEditingGallery({ ...editingGallery, description: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingGallery(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-xs text-slate-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSaveGallery(editingGallery)}
-                  disabled={saving}
-                  className="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-xs text-white font-semibold flex items-center gap-1.5"
-                >
-                  {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Save Gallery Item</span>
-                </button>
-              </div>
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center shrink-0">
+              <Briefcase className="w-6 h-6" />
             </div>
-          )}
+            <div>
+              <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                Total Products
+              </span>
+              <span className="text-2xl font-black text-slate-950">{totalProductsCount}</span>
+            </div>
+          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {gallery.map((item) => (
-              <div key={item.id} className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
-                <div className="h-44 relative bg-slate-950 overflow-hidden">
-                  <img
-                    src={item.imageUrl}
-                    alt={item.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <span className="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md border border-slate-800 text-sky-400 text-[10px] uppercase font-bold px-2.5 py-1 rounded-full">
-                    {item.category}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                Database Status
+              </span>
+              <span className="text-sm font-black text-emerald-600">SQLite Connected</span>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+              <Inbox className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                Pending Inquiries
+              </span>
+              <span className="text-2xl font-black text-slate-950">{unreadCount}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* TAB NAVIGATION PILLS */}
+        <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => setActiveTab("branding")}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black transition shrink-0 ${
+              activeTab === "branding"
+                ? "bg-rose-600 text-white shadow-md shadow-rose-600/25"
+                : "text-slate-600 hover:text-slate-950 hover:bg-slate-50"
+            }`}
+          >
+            <Palette className="w-4 h-4" />
+            <span>1. Branding & Theme</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("catalog")}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black transition shrink-0 ${
+              activeTab === "catalog"
+                ? "bg-rose-600 text-white shadow-md shadow-rose-600/25"
+                : "text-slate-600 hover:text-slate-950 hover:bg-slate-50"
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>2. Catalog Manager ({catalog.length} Categories)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("content")}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black transition shrink-0 ${
+              activeTab === "content"
+                ? "bg-rose-600 text-white shadow-md shadow-rose-600/25"
+                : "text-slate-600 hover:text-slate-950 hover:bg-slate-50"
+            }`}
+          >
+            <Layout className="w-4 h-4" />
+            <span>3. Website Copy & Hero</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("inquiries")}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black transition shrink-0 relative ${
+              activeTab === "inquiries"
+                ? "bg-rose-600 text-white shadow-md shadow-rose-600/25"
+                : "text-slate-600 hover:text-slate-950 hover:bg-slate-50"
+            }`}
+          >
+            <Inbox className="w-4 h-4" />
+            <span>4. Customer Inquiries ({messages.length})</span>
+            {unreadCount > 0 && (
+              <span className="px-1.5 py-0.5 text-[10px] bg-amber-400 text-slate-950 rounded-full font-black ml-1">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* TAB 1: BRANDING & THEME */}
+        {activeTab === "branding" && (
+          <form onSubmit={handleSaveBranding} className="space-y-6">
+            {/* BRANDING MEDIA CARD */}
+            <div className="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-md space-y-6">
+              <div className="border-b border-slate-100 pb-4">
+                <span className="text-[10px] font-black uppercase text-rose-600 tracking-widest block">
+                  BRAND IDENTITY & ASSETS
+                </span>
+                <h2 className="text-xl font-black text-slate-950">Shop Logo & Favicon Media</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Header Logo Box */}
+                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4 text-center">
+                  <span className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                    Website Header Logo
                   </span>
+                  <div className="w-24 h-24 mx-auto rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center p-3 shadow-md overflow-hidden shrink-0">
+                    {branding.logoUrl ? (
+                      <img src={branding.logoUrl} alt="Logo Preview" className="w-full h-full object-contain" />
+                    ) : (
+                      <Mountain className="w-10 h-10 text-rose-500" />
+                    )}
+                  </div>
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-950 hover:bg-rose-600 text-white font-extrabold text-xs transition">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Upload Logo File</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(e, (url) => setBranding({ ...branding, logoUrl: url }))}
+                    />
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Or paste Logo URL"
+                    value={branding.logoUrl || ""}
+                    onChange={(e) => setBranding({ ...branding, logoUrl: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[11px] text-slate-800 outline-none font-mono"
+                  />
                 </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-white text-sm">{item.title}</h3>
-                  <p className="text-xs text-slate-400 line-clamp-1 mt-1">{item.description}</p>
-                  <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-800/80">
-                    <button
-                      onClick={() => setEditingGallery(item)}
-                      className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-sky-400"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteGallery(item.id)}
-                      className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-red-400"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+
+                {/* Site Favicon Box */}
+                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4 text-center">
+                  <span className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                    Browser Favicon / Icon
+                  </span>
+                  <div className="w-24 h-24 mx-auto rounded-2xl bg-white border border-slate-200 flex items-center justify-center p-3 shadow-inner">
+                    {branding.faviconUrl ? (
+                      <img src={branding.faviconUrl} alt="Favicon Preview" className="w-full h-full object-contain" />
+                    ) : (
+                      <Sparkles className="w-10 h-10 text-amber-500" />
+                    )}
+                  </div>
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-950 hover:bg-rose-600 text-white font-extrabold text-xs transition">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Upload Site Icon</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(e, (url) => setBranding({ ...branding, faviconUrl: url }))}
+                    />
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Or paste Icon URL"
+                    value={branding.faviconUrl || ""}
+                    onChange={(e) => setBranding({ ...branding, faviconUrl: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[11px] text-slate-800 outline-none font-mono"
+                  />
+                </div>
+
+                {/* Hero Banner Box */}
+                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4 text-center">
+                  <span className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                    Homepage Hero Image
+                  </span>
+                  <div className="w-full h-24 rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-inner relative">
+                    <img
+                      src={branding.heroImageUrl || "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80"}
+                      alt="Hero Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-950 hover:bg-rose-600 text-white font-extrabold text-xs transition">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Upload Hero Media</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(e, (url) => setBranding({ ...branding, heroImageUrl: url }))}
+                    />
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Or paste Hero Image URL"
+                    value={branding.heroImageUrl || ""}
+                    onChange={(e) => setBranding({ ...branding, heroImageUrl: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[11px] text-slate-800 outline-none font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* COLOR PALETTE & GRADIENTS */}
+            <div className="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-md space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <span className="text-[10px] font-black uppercase text-rose-600 tracking-widest block">
+                    VISUAL SYSTEM
+                  </span>
+                  <h2 className="text-xl font-black text-slate-950">Brand Colors & Presets</h2>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider">
+                    Primary Slate Color
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={branding.primaryColor || "#0f172a"}
+                      onChange={(e) => setBranding({ ...branding, primaryColor: e.target.value })}
+                      className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-0"
+                    />
+                    <input
+                      type="text"
+                      value={branding.primaryColor || "#0f172a"}
+                      onChange={(e) => setBranding({ ...branding, primaryColor: e.target.value })}
+                      className="flex-1 bg-white border border-slate-200 text-slate-900 text-xs font-mono font-bold rounded-xl px-3 py-2 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider">
+                    Secondary Accent Color
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={branding.secondaryColor || "#0284c7"}
+                      onChange={(e) => setBranding({ ...branding, secondaryColor: e.target.value })}
+                      className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-0"
+                    />
+                    <input
+                      type="text"
+                      value={branding.secondaryColor || "#0284c7"}
+                      onChange={(e) => setBranding({ ...branding, secondaryColor: e.target.value })}
+                      className="flex-1 bg-white border border-slate-200 text-slate-900 text-xs font-mono font-bold rounded-xl px-3 py-2 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider">
+                    Crimson Rose Accent
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={branding.accentColor || "#e11d48"}
+                      onChange={(e) => setBranding({ ...branding, accentColor: e.target.value })}
+                      className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-0"
+                    />
+                    <input
+                      type="text"
+                      value={branding.accentColor || "#e11d48"}
+                      onChange={(e) => setBranding({ ...branding, accentColor: e.target.value })}
+                      className="flex-1 bg-white border border-slate-200 text-slate-900 text-xs font-mono font-bold rounded-xl px-3 py-2 outline-none"
+                    />
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: TESTIMONIALS */}
-      {activeTab === "testimonials" && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-white">Customer Reviews</h2>
-              <p className="text-xs text-slate-400">Local feedback shown on home page.</p>
             </div>
-            <button
-              onClick={() =>
-                setEditingTestimonial({
-                  clientName: "",
-                  clientRole: "Customer",
-                  clientCompany: "Bhaktapur",
-                  avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
-                  content: "",
-                  rating: 5,
-                })
-              }
-              className="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition shadow-lg shadow-sky-500/20"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Testimonial</span>
-            </button>
-          </div>
 
-          {editingTestimonial && (
-            <div className="bg-slate-900 border border-sky-500/40 rounded-2xl p-6 space-y-4 shadow-2xl">
-              <h3 className="text-md font-bold text-sky-400">
-                {editingTestimonial.id ? "Edit Review" : "Add Review"}
-              </h3>
+            {/* SHOP CONTACT DETAILS */}
+            <div className="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-md space-y-6">
+              <div className="border-b border-slate-100 pb-4">
+                <span className="text-[10px] font-black uppercase text-rose-600 tracking-widest block">
+                  CONTACT DETAILS
+                </span>
+                <h2 className="text-xl font-black text-slate-950">Shop Name & Contact Copy</h2>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Customer Name</label>
+                  <label className="block text-xs font-extrabold uppercase text-slate-700 mb-1">Shop Name</label>
                   <input
                     type="text"
-                    value={editingTestimonial.clientName}
-                    onChange={(e) => setEditingTestimonial({ ...editingTestimonial, clientName: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
+                    value={branding.siteName || ""}
+                    onChange={(e) => setBranding({ ...branding, siteName: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-rose-500"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Role / Detail</label>
+                  <label className="block text-xs font-extrabold uppercase text-slate-700 mb-1">Tagline</label>
                   <input
                     type="text"
-                    value={editingTestimonial.clientRole}
-                    onChange={(e) => setEditingTestimonial({ ...editingTestimonial, clientRole: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
+                    value={branding.tagline || ""}
+                    onChange={(e) => setBranding({ ...branding, tagline: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-rose-500"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Location / Company</label>
+                  <label className="block text-xs font-extrabold uppercase text-slate-700 mb-1">Contact Email</label>
+                  <input
+                    type="email"
+                    value={branding.contactEmail || ""}
+                    onChange={(e) => setBranding({ ...branding, contactEmail: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-rose-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-extrabold uppercase text-slate-700 mb-1">Phone Numbers</label>
                   <input
                     type="text"
-                    value={editingTestimonial.clientCompany || ""}
-                    onChange={(e) => setEditingTestimonial({ ...editingTestimonial, clientCompany: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
+                    value={branding.contactPhone || ""}
+                    onChange={(e) => setBranding({ ...branding, contactPhone: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-rose-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Rating (1-5)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={5}
-                    value={editingTestimonial.rating}
-                    onChange={(e) => setEditingTestimonial({ ...editingTestimonial, rating: parseInt(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs text-slate-400 mb-1">Review Content (Nepali / English)</label>
-                  <textarea
-                    rows={3}
-                    value={editingTestimonial.content}
-                    onChange={(e) => setEditingTestimonial({ ...editingTestimonial, content: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingTestimonial(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-xs text-slate-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSaveTestimonial(editingTestimonial)}
-                  disabled={saving}
-                  className="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-xs text-white font-semibold flex items-center gap-1.5"
-                >
-                  {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Save Review</span>
-                </button>
               </div>
             </div>
-          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {testimonials.map((item) => (
-              <div key={item.id} className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-lg relative">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="font-bold text-white text-sm">{item.clientName}</h3>
-                    <p className="text-xs text-slate-400">{item.clientRole} {item.clientCompany ? `• ${item.clientCompany}` : ""}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-amber-400">
-                    {Array.from({ length: item.rating }).map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 fill-amber-400" />
-                    ))}
-                  </div>
-                </div>
-                <p className="text-xs text-slate-300 italic mb-4">"{item.content}"</p>
-                <div className="flex justify-end gap-2 pt-3 border-t border-slate-800/80">
-                  <button
-                    onClick={() => setEditingTestimonial(item)}
-                    className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-sky-400"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteTestimonial(item.id)}
-                    className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-red-400"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={saving || uploading}
+                className="px-8 py-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-xl shadow-rose-600/30 transition flex items-center gap-2 disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                <span>Save Branding Settings</span>
+              </button>
+            </div>
+          </form>
+        )}
 
-      {/* TAB 5: SECTIONS */}
-      {activeTab === "sections" && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-bold text-white">Dynamic Page Sections</h2>
-            <p className="text-xs text-slate-400">Control section titles, copy, and visibility.</p>
-          </div>
-
+        {/* TAB 2: CATALOG MANAGER (CLEAN STRUCTURED SPLIT VIEW) */}
+        {activeTab === "catalog" && (
           <div className="space-y-6">
-            {pageSections.map((sec) => (
-              <div key={sec.id} className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2.5 py-1 rounded-lg uppercase">
-                      {sec.sectionKey}
-                    </span>
-                    <span className="text-sm font-semibold text-white">{sec.title}</span>
-                  </div>
-                  <button
-                    onClick={() =>
-                      handleUpdateSection({
-                        ...sec,
-                        isVisible: !sec.isVisible,
-                      })
-                    }
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
-                      sec.isVisible
-                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                        : "bg-slate-800 border-slate-700 text-slate-400"
-                    }`}
-                  >
-                    {sec.isVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                    <span>{sec.isVisible ? "Visible" : "Hidden"}</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-1">Title</label>
-                    <input
-                      type="text"
-                      value={sec.title}
-                      onChange={(e) =>
-                        setPageSections(
-                          pageSections.map((s) => (s.id === sec.id ? { ...s, title: e.target.value } : s))
-                        )
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-1">Subtitle</label>
-                    <input
-                      type="text"
-                      value={sec.subtitle || ""}
-                      onChange={(e) =>
-                        setPageSections(
-                          pageSections.map((s) => (s.id === sec.id ? { ...s, subtitle: e.target.value } : s))
-                        )
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-xs text-slate-400 mb-1">Content Body</label>
-                    <textarea
-                      rows={3}
-                      value={sec.content || ""}
-                      onChange={(e) =>
-                        setPageSections(
-                          pageSections.map((s) => (s.id === sec.id ? { ...s, content: e.target.value } : s))
-                        )
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    onClick={() => handleUpdateSection(sec)}
-                    disabled={saving}
-                    className="flex items-center gap-1.5 bg-sky-500 hover:bg-sky-400 text-white font-semibold text-xs px-4 py-2 rounded-xl transition"
-                  >
-                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                    <span>Update Section</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 6: CONTACT MESSAGES */}
-      {activeTab === "messages" && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-white">Contact Form Inquiries</h2>
-              <p className="text-xs text-slate-400">Submissions received from customers on the website.</p>
-            </div>
-            <span className="px-3 py-1 bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold rounded-xl">
-              Total Inquiries: {messages.length}
-            </span>
-          </div>
-
-          {messages.length === 0 ? (
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-12 text-center text-slate-400">
-              <Inbox className="w-10 h-10 mx-auto text-slate-600 mb-3" />
-              <p className="text-sm font-semibold">No inquiries received yet.</p>
-              <p className="text-xs text-slate-500">Contact form submissions will appear here automatically.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {messages.map((item) => (
-                <div
-                  key={item.id}
-                  className={`bg-slate-900/60 border rounded-2xl p-6 shadow-lg space-y-3 transition ${
-                    item.status === "unread" ? "border-sky-500/50 bg-slate-900/90" : "border-slate-800"
-                  }`}
+            {/* TOP CATEGORIES SELECTOR STRIP */}
+            <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-md space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <span className="text-[10px] font-black uppercase text-rose-600 tracking-widest block">
+                  TOP-LEVEL CATEGORIES ({catalog.length})
+                </span>
+                <button
+                  onClick={() =>
+                    setCategoryModal({
+                      name: "",
+                      slug: "",
+                      description: "",
+                      iconName: "Printer",
+                      imageUrl: "https://images.unsplash.com/photo-1562564077-715947276f95?auto=format&fit=crop&w=800&q=80",
+                      isActive: true,
+                    })
+                  }
+                  className="px-4 py-2 rounded-xl bg-slate-950 hover:bg-rose-600 text-white font-extrabold text-xs transition flex items-center gap-1.5 shadow-sm"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
-                    <div>
-                      <span className="font-bold text-white text-sm">{item.name}</span>
-                      <span className="text-xs text-slate-400 ml-3">
-                        {item.createdAt ? new Date(item.createdAt).toLocaleString() : ""}
-                      </span>
-                    </div>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>New Top Category</span>
+                </button>
+              </div>
 
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={item.status}
-                        onChange={(e) => handleStatusChange(item.id, e.target.value as any)}
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-lg border bg-slate-950 outline-none ${
-                          item.status === "unread"
-                            ? "text-amber-400 border-amber-500/30"
-                            : item.status === "replied"
-                            ? "text-emerald-400 border-emerald-500/30"
-                            : "text-slate-300 border-slate-700"
+              {/* Category Pills Bar */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                {catalog.map((cat) => {
+                  const isSelected = activeCategory?.id === cat.id;
+                  const subCount = cat.subcategories ? cat.subcategories.length : 0;
+
+                  return (
+                    <div
+                      key={cat.id}
+                      onClick={() => {
+                        setSelectedCatId(cat.id);
+                        if (cat.subcategories && cat.subcategories[0]) {
+                          setSelectedSubId(cat.subcategories[0].id);
+                        } else {
+                          setSelectedSubId("");
+                        }
+                      }}
+                      className={`px-4 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition flex items-center gap-2 shrink-0 ${
+                        isSelected
+                          ? "bg-rose-600 text-white border-rose-600 shadow-md"
+                          : "bg-slate-50 text-slate-700 border-slate-200/80 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span>{cat.name}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                          isSelected ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
                         }`}
                       >
-                        <option value="unread">Unread</option>
-                        <option value="read">Read</option>
-                        <option value="replied">Replied</option>
-                      </select>
+                        {subCount} subs
+                      </span>
 
                       <button
-                        onClick={() => handleDeleteMessage(item.id)}
-                        className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-red-400"
-                        title="Delete inquiry"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCategoryModal(cat);
+                        }}
+                        className="p-1 rounded hover:bg-black/10"
+                        title="Edit category"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Edit2 className="w-3 h-3" />
                       </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* SPLIT VIEW WORKSPACE: SUBCATEGORIES (LEFT) & PRODUCTS GRID (RIGHT) */}
+            {activeCategory && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* LEFT COLUMN: SUBCATEGORIES LIST */}
+                <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-md space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                        SUBCATEGORIES
+                      </span>
+                      <h3 className="text-sm font-black text-slate-950">{activeCategory.name}</h3>
+                    </div>
+                    <button
+                      onClick={() =>
+                        setSubcategoryModal({
+                          categoryId: activeCategory.id,
+                          name: "",
+                          slug: "",
+                          description: "",
+                          imageUrl: "",
+                          isActive: true,
+                        })
+                      }
+                      className="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition font-bold text-xs flex items-center gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Sub</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto no-scrollbar">
+                    {activeCategory.subcategories?.map((sub: any) => {
+                      const isSelected = activeSubcategory?.id === sub.id;
+                      const prodCount = sub.products ? sub.products.length : 0;
+
+                      return (
+                        <div
+                          key={sub.id}
+                          onClick={() => setSelectedSubId(sub.id)}
+                          className={`p-3.5 rounded-2xl border text-xs cursor-pointer transition flex items-center justify-between ${
+                            isSelected
+                              ? "bg-slate-950 text-white border-slate-950 shadow-md font-bold"
+                              : "bg-slate-50 text-slate-800 border-slate-200/80 hover:border-slate-300"
+                          }`}
+                        >
+                          <div>
+                            <span className="block truncate font-bold">{sub.name}</span>
+                            <span
+                              className={`text-[10px] font-mono ${
+                                isSelected ? "text-slate-300" : "text-slate-400"
+                              }`}
+                            >
+                              {prodCount} Products
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSubcategoryModal(sub);
+                              }}
+                              className="p-1.5 rounded-lg hover:bg-white/20"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteSubcategory(sub.id);
+                              }}
+                              className="p-1.5 rounded-lg hover:bg-white/20 text-rose-400"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* RIGHT COLUMN: PRODUCTS LIST FOR SELECTED SUBCATEGORY */}
+                <div className="lg:col-span-8 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-md space-y-6">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-rose-600 tracking-widest block">
+                        PRODUCTS & SERVICES
+                      </span>
+                      <h3 className="text-base font-black text-slate-950">
+                        {activeSubcategory ? activeSubcategory.name : "Select a Subcategory"}
+                      </h3>
+                    </div>
+
+                    {activeSubcategory && (
+                      <button
+                        onClick={() =>
+                          setProductModal({
+                            subcategoryId: activeSubcategory.id,
+                            name: "",
+                            slug: "",
+                            description: "",
+                            paperSpec: "",
+                            price: "",
+                            isActive: true,
+                          })
+                        }
+                        className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add New Product</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* PRODUCTS GRID */}
+                  {!activeSubcategory || !activeSubcategory.products || activeSubcategory.products.length === 0 ? (
+                    <div className="p-12 text-center text-slate-400">
+                      <Briefcase className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+                      <p className="text-xs font-bold">No products in this subcategory.</p>
+                      <p className="text-[11px] text-slate-400 mt-1">Click 'Add New Product' above to add items.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {activeSubcategory.products.map((prod: any) => (
+                        <div
+                          key={prod.id}
+                          className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3 hover:border-rose-200 transition"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <span className="font-extrabold text-xs text-slate-950 block">{prod.name}</span>
+                              {prod.paperSpec && (
+                                <span className="text-[10px] font-mono text-slate-500 block mt-0.5">
+                                  • Spec: {prod.paperSpec}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => setProductModal(prod)}
+                                className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-rose-600"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteProduct(prod.id)}
+                                className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-red-600"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                            {prod.description}
+                          </p>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
+                            <span className="text-[10px] font-mono text-slate-400">
+                              /product/{prod.slug}
+                            </span>
+                            <Link
+                              href={`/product/${prod.slug}`}
+                              target="_blank"
+                              className="text-[10px] font-extrabold text-rose-600 hover:underline flex items-center gap-0.5"
+                            >
+                              <span>Preview</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: WEBSITE COPY & HERO */}
+        {activeTab === "content" && (
+          <div className="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-md space-y-6">
+            <div className="border-b border-slate-100 pb-4">
+              <span className="text-[10px] font-black uppercase text-rose-600 tracking-widest block">
+                PAGE COPY & PROMOTIONAL SECTIONS
+              </span>
+              <h2 className="text-xl font-black text-slate-950">Homepage & Header Copy Editor</h2>
+            </div>
+
+            <div className="space-y-6">
+              {pageSections.map((sec) => (
+                <div key={sec.id} className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+                    <span className="font-mono text-xs font-black text-rose-600 uppercase">
+                      Section Key: {sec.sectionKey}
+                    </span>
+                    <button
+                      onClick={() => handleUpdateSection({ ...sec, isVisible: !sec.isVisible })}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 ${
+                        sec.isVisible ? "bg-emerald-100 text-emerald-800 border border-emerald-300" : "bg-slate-200 text-slate-600"
+                      }`}
+                    >
+                      {sec.isVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                      <span>{sec.isVisible ? "Visible on Site" : "Hidden"}</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-black uppercase text-slate-700 mb-1">Title</label>
+                      <input
+                        type="text"
+                        value={sec.title}
+                        onChange={(e) =>
+                          setPageSections(
+                            pageSections.map((s) => (s.id === sec.id ? { ...s, title: e.target.value } : s))
+                          )
+                        }
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black uppercase text-slate-700 mb-1">Subtitle</label>
+                      <input
+                        type="text"
+                        value={sec.subtitle || ""}
+                        onChange={(e) =>
+                          setPageSections(
+                            pageSections.map((s) => (s.id === sec.id ? { ...s, subtitle: e.target.value } : s))
+                          )
+                        }
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs text-slate-900"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-black uppercase text-slate-700 mb-1">Content Body</label>
+                      <textarea
+                        rows={3}
+                        value={sec.content || ""}
+                        onChange={(e) =>
+                          setPageSections(
+                            pageSections.map((s) => (s.id === sec.id ? { ...s, content: e.target.value } : s))
+                          )
+                        }
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs text-slate-900"
+                      />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    {item.phone && (
-                      <div className="flex items-center gap-2 text-slate-300">
-                        <Phone className="w-3.5 h-3.5 text-sky-400" />
-                        <a href={`tel:${item.phone}`} className="hover:underline">
-                          {item.phone}
-                        </a>
-                      </div>
-                    )}
-                    {item.email && (
-                      <div className="flex items-center gap-2 text-slate-300">
-                        <Mail className="w-3.5 h-3.5 text-sky-400" />
-                        <a href={`mailto:${item.email}`} className="hover:underline">
-                          {item.email}
-                        </a>
-                      </div>
-                    )}
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => handleUpdateSection(sec)}
+                      className="px-6 py-2.5 bg-slate-950 hover:bg-rose-600 text-white rounded-xl text-xs font-black transition"
+                    >
+                      Save Section Copy
+                    </button>
                   </div>
-
-                  <p className="text-xs text-slate-200 bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 whitespace-pre-wrap">
-                    {item.message}
-                  </p>
                 </div>
               ))}
             </div>
-          )}
+          </div>
+        )}
+
+        {/* TAB 4: CUSTOMER INQUIRIES */}
+        {activeTab === "inquiries" && (
+          <div className="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-md space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase text-rose-600 tracking-widest block">
+                  CUSTOMER MESSAGES
+                </span>
+                <h2 className="text-xl font-black text-slate-950">Inquiries & Quotes Inbox</h2>
+              </div>
+              <span className="px-3 py-1 bg-slate-100 text-slate-800 text-xs font-black rounded-xl border border-slate-200">
+                Total: {messages.length}
+              </span>
+            </div>
+
+            {messages.length === 0 ? (
+              <div className="p-12 text-center text-slate-400">
+                <Inbox className="w-12 h-12 mx-auto text-slate-300 mb-2" />
+                <p className="text-xs font-black">No inquiries received yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {messages.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`p-6 rounded-2xl border transition ${
+                      item.status === "unread" ? "border-rose-300 bg-rose-50/20" : "border-slate-200 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-slate-950 text-white font-black text-xs flex items-center justify-center">
+                          {item.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <span className="font-black text-slate-950 text-xs block">{item.name}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {item.createdAt ? new Date(item.createdAt).toLocaleString() : ""}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={item.status}
+                          onChange={(e) => handleStatusChange(item.id, e.target.value as any)}
+                          className="text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 bg-white outline-none"
+                        >
+                          <option value="unread">Unread</option>
+                          <option value="read">Read</option>
+                          <option value="replied">Replied</option>
+                        </select>
+                        <button onClick={() => handleDeleteMessage(item.id)} className="p-2 text-slate-400 hover:text-rose-600">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold text-slate-700 mb-3">
+                      {item.phone && <div>Phone: <a href={`tel:${item.phone}`} className="text-rose-600">{item.phone}</a></div>}
+                      {item.email && <div>Email: <a href={`mailto:${item.email}`} className="text-rose-600">{item.email}</a></div>}
+                    </div>
+
+                    <p className="text-xs text-slate-800 bg-slate-50 p-4 rounded-xl border border-slate-200/80 whitespace-pre-wrap font-medium">
+                      {item.message}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* OVERLAY MODAL: EDIT CATEGORY */}
+      {categoryModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-black text-slate-950">
+                {categoryModal.id ? "Edit Category" : "New Category"}
+              </h3>
+              <button onClick={() => setCategoryModal(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-900">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-black text-slate-700 mb-1">Category Name</label>
+                <input
+                  type="text"
+                  value={categoryModal.name}
+                  onChange={(e) => setCategoryModal({ ...categoryModal, name: e.target.value })}
+                  className="w-full border border-slate-200 rounded-xl p-2.5 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-black text-slate-700 mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  value={categoryModal.description || ""}
+                  onChange={(e) => setCategoryModal({ ...categoryModal, description: e.target.value })}
+                  className="w-full border border-slate-200 rounded-xl p-2.5"
+                />
+              </div>
+
+              <div>
+                <label className="block font-black text-slate-700 mb-1">Image URL / Upload</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={categoryModal.imageUrl || ""}
+                    onChange={(e) => setCategoryModal({ ...categoryModal, imageUrl: e.target.value })}
+                    className="flex-1 border border-slate-200 rounded-xl p-2.5 font-mono text-[11px]"
+                  />
+                  <label className="cursor-pointer px-3 py-2.5 rounded-xl bg-slate-950 text-white font-bold text-xs shrink-0 flex items-center gap-1">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Upload</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(e, (url) => setCategoryModal({ ...categoryModal, imageUrl: url }))}
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button onClick={() => setCategoryModal(null)} className="px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold">
+                Cancel
+              </button>
+              <button
+                onClick={() => handleSaveCategory(categoryModal)}
+                className="px-5 py-2 rounded-xl bg-rose-600 text-white text-xs font-black"
+              >
+                Save Category
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* TAB 7: SITE SETTINGS */}
-      {activeTab === "settings" && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-bold text-white">Dynamic Site Settings</h2>
-            <p className="text-xs text-slate-400">Key-value configurations stored in database without redeploy.</p>
-          </div>
+      {/* OVERLAY MODAL: EDIT SUBCATEGORY */}
+      {subcategoryModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-black text-slate-950">
+                {subcategoryModal.id ? "Edit Subcategory" : "New Subcategory"}
+              </h3>
+              <button onClick={() => setSubcategoryModal(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-900">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-            {settings.map((stg) => (
-              <div key={stg.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
-                <div className="sm:w-1/3">
-                  <span className="font-mono text-xs font-semibold text-sky-400 uppercase tracking-wider block">
-                    {stg.key}
-                  </span>
-                </div>
-                <div className="flex-1 flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={stg.value}
-                    onChange={(e) =>
-                      setSettings(
-                        settings.map((s) => (s.key === stg.key ? { ...s, value: e.target.value } : s))
-                      )
-                    }
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
-                  />
-                  <button
-                    onClick={() => handleSaveSetting(stg.key, stg.value)}
-                    disabled={saving}
-                    className="px-3 py-2 bg-sky-500 hover:bg-sky-400 text-white rounded-xl text-xs font-semibold shrink-0"
-                  >
-                    Save
-                  </button>
-                </div>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-black text-slate-700 mb-1">Subcategory Name</label>
+                <input
+                  type="text"
+                  value={subcategoryModal.name}
+                  onChange={(e) => setSubcategoryModal({ ...subcategoryModal, name: e.target.value })}
+                  className="w-full border border-slate-200 rounded-xl p-2.5 font-bold"
+                />
               </div>
-            ))}
+
+              <div>
+                <label className="block font-black text-slate-700 mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  value={subcategoryModal.description || ""}
+                  onChange={(e) => setSubcategoryModal({ ...subcategoryModal, description: e.target.value })}
+                  className="w-full border border-slate-200 rounded-xl p-2.5"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button onClick={() => setSubcategoryModal(null)} className="px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold">
+                Cancel
+              </button>
+              <button
+                onClick={() => handleSaveSubcategory(subcategoryModal)}
+                className="px-5 py-2 rounded-xl bg-rose-600 text-white text-xs font-black"
+              >
+                Save Subcategory
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OVERLAY MODAL: EDIT PRODUCT */}
+      {productModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-black text-slate-950">
+                {productModal.id ? "Edit Product" : "New Product"}
+              </h3>
+              <button onClick={() => setProductModal(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-900">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-black text-slate-700 mb-1">Product Name</label>
+                <input
+                  type="text"
+                  value={productModal.name}
+                  onChange={(e) => setProductModal({ ...productModal, name: e.target.value })}
+                  className="w-full border border-slate-200 rounded-xl p-2.5 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-black text-slate-700 mb-1">Paper Specification (e.g. 300 GSM Art Card)</label>
+                <input
+                  type="text"
+                  value={productModal.paperSpec || ""}
+                  onChange={(e) => setProductModal({ ...productModal, paperSpec: e.target.value })}
+                  className="w-full border border-slate-200 rounded-xl p-2.5"
+                />
+              </div>
+
+              <div>
+                <label className="block font-black text-slate-700 mb-1">Description</label>
+                <textarea
+                  rows={3}
+                  value={productModal.description || ""}
+                  onChange={(e) => setProductModal({ ...productModal, description: e.target.value })}
+                  className="w-full border border-slate-200 rounded-xl p-2.5"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button onClick={() => setProductModal(null)} className="px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold">
+                Cancel
+              </button>
+              <button
+                onClick={() => handleSaveProduct(productModal)}
+                className="px-5 py-2 rounded-xl bg-rose-600 text-white text-xs font-black"
+              >
+                Save Product
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -63,6 +63,9 @@ export const branding = sqliteTable("branding", {
   siteName: text("site_name").notNull().default("Mountain Multimedia Service"),
   tagline: text("tagline").notNull().default("A Complete Design & Printing Solution"),
   logoUrl: text("logo_url"),
+  faviconUrl: text("favicon_url"),
+  heroImageUrl: text("hero_image_url"),
+  gradientPreset: text("gradient_preset").notNull().default("rose-emerald"),
   primaryColor: text("primary_color").notNull().default("#0f172a"),
   secondaryColor: text("secondary_color").notNull().default("#0284c7"),
   accentColor: text("accent_color").notNull().default("#84cc16"),
@@ -71,6 +74,47 @@ export const branding = sqliteTable("branding", {
   address: text("address").notNull().default("Dugure, Malpot Road, Bhaktapur, Nepal"),
   openingHours: text("opening_hours").notNull().default("Open Daily: 8:00 AM – 7:00 PM"),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(new Date()),
+});
+
+export const categories = sqliteTable("categories", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  iconName: text("icon_name").notNull().default("Printer"),
+  imageUrl: text("image_url"),
+  displayOrder: integer("display_order").notNull().default(0),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+});
+
+export const subcategories = sqliteTable("subcategories", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  categoryId: integer("category_id")
+    .notNull()
+    .references(() => categories.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  hasCustomSizesNote: integer("has_custom_sizes_note", { mode: "boolean" }).notNull().default(false),
+  displayOrder: integer("display_order").notNull().default(0),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+});
+
+export const products = sqliteTable("products", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  subcategoryId: integer("subcategory_id")
+    .notNull()
+    .references(() => subcategories.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  paperSpec: text("paper_spec"),
+  price: text("price"),
+  imageUrl: text("image_url"),
+  hasCustomSizesNote: integer("has_custom_sizes_note", { mode: "boolean" }).notNull().default(false),
+  displayOrder: integer("display_order").notNull().default(0),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 });
 
 export const services = sqliteTable("services", {
@@ -133,3 +177,4 @@ export const siteSettings = sqliteTable("site_settings", {
   value: text("value").notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(new Date()),
 });
+

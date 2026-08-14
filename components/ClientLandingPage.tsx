@@ -39,6 +39,7 @@ import { SERVICES_CATALOG } from "@/lib/servicesData";
 
 interface ClientLandingPageProps {
   branding: any;
+  catalog?: any[];
   services: any[];
   gallery: any[];
   testimonials: any[];
@@ -47,6 +48,7 @@ interface ClientLandingPageProps {
 
 export default function ClientLandingPage({
   branding,
+  catalog,
   services,
   gallery,
   testimonials,
@@ -54,6 +56,8 @@ export default function ClientLandingPage({
 }: ClientLandingPageProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeCategoryIdx, setActiveCategoryIdx] = useState(0);
+
+  const activeCatalog = catalog && catalog.length > 0 ? catalog : SERVICES_CATALOG;
 
   // Form states
   const [name, setName] = useState("");
@@ -89,7 +93,7 @@ export default function ClientLandingPage({
     }
   };
 
-  const selectedCategory = SERVICES_CATALOG[activeCategoryIdx] || SERVICES_CATALOG[0];
+  const selectedCategory = activeCatalog[activeCategoryIdx] || activeCatalog[0];
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-rose-500 selection:text-white">
@@ -97,15 +101,19 @@ export default function ClientLandingPage({
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition">
-              <Mountain className="w-5 h-5 text-rose-500" />
+            <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition shrink-0 overflow-hidden">
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl} alt={branding.siteName} className="w-full h-full object-contain p-1" />
+              ) : (
+                <Mountain className="w-5 h-5 text-rose-500" />
+              )}
             </div>
             <div>
-              <span className="text-xl font-black tracking-tight text-slate-950 block leading-none">
-                {branding.siteName || "Mountain Multimedia"}
+              <span className="text-xl font-black tracking-tight text-slate-950 block leading-none whitespace-nowrap">
+                {branding.siteName || "Mountain Multimedia Service"}
               </span>
-              <span className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase block mt-1">
-                Printing Press & Studio
+              <span className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase block mt-1 whitespace-nowrap">
+                {branding.tagline || "Printing Press & Studio"}
               </span>
             </div>
           </Link>
@@ -116,7 +124,7 @@ export default function ClientLandingPage({
             </Link>
 
             {/* Integrated Services Mega-Menu Dropdown */}
-            <ServicesMegaMenu />
+            <ServicesMegaMenu catalog={activeCatalog} />
 
             <Link href="/about" className="hover:text-rose-600 transition">
               About
@@ -216,7 +224,7 @@ export default function ClientLandingPage({
               <div className="arch-mask border-8 border-rose-200 p-2 shadow-2xl bg-white">
                 <div className="arch-mask overflow-hidden h-[420px] sm:h-[480px] relative">
                   <img
-                    src="https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=80"
+                    src={branding.heroImageUrl || heroSection.imageUrl || "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=80"}
                     alt="Printing Workshop Designer"
                     className="w-full h-full object-cover"
                   />
@@ -308,72 +316,94 @@ export default function ClientLandingPage({
             </Link>
           </div>
 
-          {/* Interactive Category Tabs Switcher */}
+          {/* Interactive Category Tabs Switcher - Glassmorphism System */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left Tabs List */}
-            <div className="lg:col-span-4 bg-slate-50 p-4 rounded-3xl border border-slate-100 space-y-1.5">
-              {SERVICES_CATALOG.map((cat, idx) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategoryIdx(idx)}
-                  className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold transition flex items-center justify-between group ${
-                    activeCategoryIdx === idx
-                      ? "bg-rose-600 text-white shadow-lg shadow-rose-600/30 font-extrabold"
-                      : "bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-100"
-                  }`}
-                >
-                  <span className="truncate">{cat.name}</span>
-                  <ArrowRight className={`w-3.5 h-3.5 transition ${activeCategoryIdx === idx ? "text-white" : "opacity-0 group-hover:opacity-100 text-rose-500"}`} />
-                </button>
-              ))}
+            {/* Left Tabs List - Glass Panel with Stroke & Shadow */}
+            <div className="lg:col-span-4 bg-white/70 backdrop-blur-2xl p-4 rounded-3xl border border-white/90 shadow-xl shadow-slate-200/50 ring-1 ring-slate-950/5 space-y-1.5 h-[790px] overflow-y-auto no-scrollbar">
+              <div className="text-[10px] font-black uppercase text-rose-600 tracking-widest px-3 py-1 mb-1">
+                Select Printing Category
+              </div>
+              <div className="space-y-1.5">
+                {activeCatalog.map((cat, idx) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategoryIdx(idx)}
+                    className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold transition duration-200 flex items-center justify-between group ${
+                      activeCategoryIdx === idx
+                        ? "bg-rose-600 text-white shadow-xl shadow-rose-600/35 border border-rose-500 font-extrabold"
+                        : "bg-white/80 backdrop-blur-md text-slate-700 hover:bg-white hover:text-slate-950 border border-slate-200/70 shadow-sm"
+                    }`}
+                  >
+                    <span className="truncate">{cat.name}</span>
+                    <ArrowRight className={`w-3.5 h-3.5 transition ${activeCategoryIdx === idx ? "text-white" : "opacity-0 group-hover:opacity-100 text-rose-500"}`} />
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Right Interactive Showcase Box */}
-            <div className="lg:col-span-8 bg-slate-50 p-6 sm:p-8 rounded-3xl border border-slate-100 space-y-6">
+            {/* Right Interactive Showcase Box - Glass Panel with Stroke & Shadow */}
+            <div className="lg:col-span-8 bg-white/70 backdrop-blur-2xl p-6 sm:p-8 rounded-3xl border border-white/90 shadow-2xl shadow-slate-300/40 ring-1 ring-slate-950/5 h-[790px] flex flex-col overflow-hidden">
               {/* Category Image Header Card */}
-              <div className="relative rounded-2xl overflow-hidden h-44 border border-slate-200 shadow-md group">
+              <div className="relative rounded-2xl overflow-hidden h-36 border border-white/80 shadow-md group shrink-0 mb-5">
                 <img
                   src={selectedCategory.imageUrl}
                   alt={selectedCategory.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/70 to-transparent p-6 flex flex-col justify-end text-white">
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/70 to-transparent p-5 flex flex-col justify-end text-white">
                   <span className="text-xs font-extrabold uppercase text-rose-400 tracking-widest block">
-                    {selectedCategory.subcategories.length} Subcategories
+                    {selectedCategory.subcategories?.length || 0} Subcategories
                   </span>
                   <h3 className="text-2xl font-black">{selectedCategory.name}</h3>
                   <p className="text-xs text-slate-300 line-clamp-1 mt-0.5">{selectedCategory.description}</p>
                 </div>
               </div>
 
-              {/* Subcategories & Products Grid (No Prices, No Turnaround) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {selectedCategory.subcategories.map((sub) => (
-                  <div key={sub.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3 hover:border-rose-200 transition">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                      <Link
-                        href={`/subcategory/${sub.slug}`}
-                        className="font-bold text-slate-900 text-xs hover:text-rose-600 transition uppercase flex items-center gap-1"
-                      >
-                        <span>{sub.name}</span>
-                        <ArrowRight className="w-3 h-3 text-rose-500" />
-                      </Link>
-                    </div>
+              {/* Subcategories & Products Grid (Glass Card Tiles) */}
+              <div className="flex-1 overflow-y-auto no-scrollbar pr-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {selectedCategory.subcategories?.map((sub: any) => (
+                    <div
+                      key={sub.id}
+                      className="bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/80 shadow-lg shadow-slate-200/40 hover:shadow-2xl hover:border-rose-300/80 transition duration-300 flex flex-col justify-between"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                          <Link
+                            href={`/subcategory/${sub.slug}`}
+                            className="font-bold text-slate-900 text-xs hover:text-rose-600 transition uppercase flex items-center gap-1"
+                          >
+                            <span>{sub.name}</span>
+                            <ArrowRight className="w-3 h-3 text-rose-500" />
+                          </Link>
+                        </div>
 
-                    <div className="space-y-1.5">
-                      {sub.products.map((prod) => (
+                        <div className="space-y-1.5">
+                          {sub.products?.map((prod: any) => (
+                            <Link
+                              key={prod.id}
+                              href={`/product/${prod.slug}`}
+                              className="p-2 rounded-xl bg-slate-50/90 hover:bg-rose-50/90 border border-slate-100/90 hover:border-rose-200/80 backdrop-blur-sm text-[11px] font-bold text-slate-800 hover:text-rose-600 transition flex items-center justify-between group/item"
+                            >
+                              <span className="truncate">• {prod.name}</span>
+                              <ArrowRight className="w-3 h-3 text-rose-500 opacity-0 group-hover/item:opacity-100 transition" />
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-100 mt-4">
                         <Link
-                          key={prod.id}
-                          href={`/product/${prod.slug}`}
-                          className="p-2 rounded-xl bg-slate-50 hover:bg-rose-50 text-[11px] font-bold text-slate-800 hover:text-rose-600 transition flex items-center justify-between group/item"
+                          href={`/subcategory/${sub.slug}`}
+                          className="w-full py-2.5 px-4 rounded-xl bg-slate-950 hover:bg-rose-600 text-white font-extrabold text-xs transition shadow-md shadow-slate-950/10 flex items-center justify-center gap-1.5"
                         >
-                          <span className="truncate">• {prod.name}</span>
-                          <ArrowRight className="w-3 h-3 text-rose-500 opacity-0 group-hover/item:opacity-100 transition" />
+                          <span>Explore Subcategory</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
-                      ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>

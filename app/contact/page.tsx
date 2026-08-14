@@ -83,7 +83,10 @@ export default async function ContactPage() {
                 <div>
                   <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Shop Hours</div>
                   <div className="text-sm font-extrabold text-slate-900 mt-0.5">
-                    {branding.openingHours || "Open Daily: 8:00 AM – 7:00 PM"}
+                    Sun – Fri: 8:00 AM – 7:00 PM
+                  </div>
+                  <div className="text-xs font-bold text-rose-600 mt-0.5">
+                    (Closed on Saturdays)
                   </div>
                 </div>
               </div>
