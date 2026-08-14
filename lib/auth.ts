@@ -21,4 +21,12 @@ export const auth = betterAuth({
     enabled: true,
   },
   secret: process.env.BETTER_AUTH_SECRET,
+  trustedOrigins: [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://134.209.3.139:3001",
+    "http://134.209.3.139",
+    "https://sagarsandha.com.np",
+    "https://www.sagarsandha.com.np",
+  ],
 });
