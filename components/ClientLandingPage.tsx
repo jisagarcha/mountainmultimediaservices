@@ -213,8 +213,8 @@ export default function ClientLandingPage({
                 href="/services"
                 className="px-7 py-3.5 rounded-xl border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white font-extrabold text-sm transition duration-300 flex items-center gap-2"
               >
-                <span>How We Work</span>
-                <Play className="w-4 h-4 fill-current" />
+                <span>Services</span>
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
