@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #ffffff;
+    color: #0f172a;
+    font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Custom Print Confetti Background Pattern */
+.bg-print-dots {
+  background-image: radial-gradient(#e2e8f0 1.5px, transparent 1.5px), radial-gradient(#e2e8f0 1.5px, #ffffff 1.5px);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+}
+
+/* Arch Image Mask */
+.arch-mask {
+  border-radius: 500px 500px 20px 20px;
+}
+
+/* Custom Highlight Underline */
+.highlight-green {
+  position: relative;
+  display: inline-block;
+}
+.highlight-green::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background-color: #bbf7d0;
+  z-index: -1;
+  border-radius: 4px;
+}
+
+/* Hide scrollbar utility while preserving scrollability */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
