@@ -558,10 +558,83 @@ export async function deleteTestimonial(id: number) {
 // ==========================================
 
 export async function getPageSections() {
-  return await db
+  const result = await db
     .select()
     .from(schema.pageSections)
     .orderBy(schema.pageSections.displayOrder);
+
+  if (result.length === 0) {
+    const defaultSections = [
+      {
+        sectionKey: "hero",
+        title: "Bhaktapur's Premier Design & High Definition Printing Press",
+        subtitle: "A Complete Design & Printing Solution in Dugure, Malpot Road",
+        content: "From studio photo prints, customized frames, Star Flex signboards, and NCR bill pads to sub-second passport photos. Complete indoor & outdoor media production with fast same-day delivery.",
+        imageUrl: "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=80",
+        isVisible: true,
+        displayOrder: 1,
+      },
+      {
+        sectionKey: "about",
+        title: "Crafting High-Precision Printing Solutions in Bhaktapur",
+        subtitle: "Your local trusted press for quality print, photo studio & outdoor advertising",
+        content: "Mountain Multimedia Service is a full-service printing press & digital photo studio located in Dugure, Malpot Road, Bhaktapur. We bring decades of expertise in commercial offset printing, high-speed digital document copies, wedding photo framing, and corporate promotional branding.",
+        imageUrl: "https://images.unsplash.com/photo-1562564077-715947276f95?auto=format&fit=crop&w=800&q=80",
+        isVisible: true,
+        displayOrder: 2,
+      },
+      {
+        sectionKey: "services_header",
+        title: "Explore Our Full Printing Services & Studio Catalog",
+        subtitle: "9 Specialized Categories, 35+ Subcategories & 120+ Products",
+        content: "Browse our complete catalog below to inspect materials, paper GSM specs, sizes, and turnaround times. Select any product to order directly via WhatsApp or phone inquiry.",
+        imageUrl: "",
+        isVisible: true,
+        displayOrder: 3,
+      },
+      {
+        sectionKey: "contact_header",
+        title: "Get In Touch or Order Direct via WhatsApp",
+        subtitle: "Visit our shop in Dugure, Malpot Road, Bhaktapur or call us directly.",
+        content: "We are open Daily from 8:00 AM – 7:00 PM. Call 9841693181 / 9861550233 / 9849425342 or send a message below for instant estimates.",
+        imageUrl: "",
+        isVisible: true,
+        displayOrder: 4,
+      },
+    ];
+
+    await db.insert(schema.pageSections).values(defaultSections);
+    return await db.select().from(schema.pageSections).orderBy(schema.pageSections.displayOrder);
+  }
+
+  return result;
+}
+
+export async function createPageSection(data: {
+  sectionKey: string;
+  title: string;
+  subtitle?: string;
+  content?: string;
+  imageUrl?: string;
+  isVisible?: boolean;
+}) {
+  await requireAuth();
+
+  const [created] = await db
+    .insert(schema.pageSections)
+    .values({
+      sectionKey: data.sectionKey.toLowerCase().replace(/[^a-z0-9_-]+/g, "-"),
+      title: data.title,
+      subtitle: data.subtitle || "",
+      content: data.content || "",
+      imageUrl: data.imageUrl || "",
+      isVisible: data.isVisible ?? true,
+      displayOrder: Date.now(),
+    })
+    .returning();
+
+  revalidatePath("/", "layout");
+  return created;
 }
 
 export async function updatePageSection(
@@ -587,6 +660,14 @@ export async function updatePageSection(
     })
     .where(eq(schema.pageSections.id, id));
 
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function deletePageSection(id: number) {
+  await requireAuth();
+
+  await db.delete(schema.pageSections).where(eq(schema.pageSections.id, id));
   revalidatePath("/", "layout");
   return { success: true };
 }
