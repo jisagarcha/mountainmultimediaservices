@@ -166,7 +166,7 @@ export default function ClientLandingPage({
               Home
             </Link>
             <Link href="/services" onClick={() => setMenuOpen(false)} className="block text-sm font-bold text-slate-800 hover:text-rose-600">
-              Services Catalog
+              Services
             </Link>
             <Link href="/about" onClick={() => setMenuOpen(false)} className="block text-sm font-bold text-slate-800 hover:text-rose-600">
               About
@@ -365,9 +365,23 @@ export default function ClientLandingPage({
                   {selectedCategory.subcategories?.map((sub: any) => (
                     <div
                       key={sub.id}
-                      className="bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/80 shadow-lg shadow-slate-200/40 hover:shadow-2xl hover:border-rose-300/80 transition duration-300 flex flex-col justify-between"
+                      className="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-lg shadow-slate-200/40 hover:shadow-2xl hover:border-rose-300/80 transition duration-300 flex flex-col justify-between overflow-hidden group"
                     >
-                      <div className="space-y-3">
+                      {sub.imageUrl && (
+                        <div className="h-28 overflow-hidden border-b border-slate-100 relative shrink-0 bg-slate-100 flex items-center justify-center">
+                          <img
+                            src={sub.imageUrl}
+                            alt={sub.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div className="space-y-3">
                         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                           <Link
                             href={`/subcategory/${sub.slug}`}
@@ -402,7 +416,8 @@ export default function ClientLandingPage({
                         </Link>
                       </div>
                     </div>
-                  ))}
+                  </div>
+                ))}
                 </div>
               </div>
             </div>

@@ -63,8 +63,8 @@ export default async function SubcategoryPage({
 
       {/* Header Banner */}
       <section className="bg-slate-50 border-b border-slate-100 px-6 py-12">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <div className="space-y-3">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="lg:col-span-8 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-extrabold text-rose-600 uppercase tracking-widest block">
                 {category.name} Subcategory
@@ -80,9 +80,19 @@ export default async function SubcategoryPage({
               {subcategory.name} Printing Services
             </h1>
             <p className="text-slate-500 text-sm max-w-2xl">
-              Select any product for paper stock specifications and 1-click WhatsApp order.
+              {subcategory.description || "Select any product for paper stock specifications and 1-click WhatsApp order."}
             </p>
           </div>
+
+          {(subcategory.imageUrl || category.imageUrl) && (
+            <div className="lg:col-span-4 h-48 rounded-2xl overflow-hidden shadow-lg border border-slate-200">
+              <img
+                src={subcategory.imageUrl || category.imageUrl}
+                alt={subcategory.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
         </div>
       </section>
 
@@ -92,14 +102,24 @@ export default async function SubcategoryPage({
           {subcategory.products.map((prod) => (
             <div
               key={prod.id}
-              className="bg-white border border-slate-100 rounded-2xl p-6 shadow-md shadow-slate-200/50 hover:shadow-xl hover:border-rose-200 transition duration-300 flex flex-col justify-between group"
+              className="bg-white border border-slate-100 rounded-2xl p-6 shadow-md shadow-slate-200/50 hover:shadow-xl hover:border-rose-200 transition duration-300 flex flex-col justify-between group overflow-hidden"
             >
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600">
-                    <Printer className="w-5 h-5" />
+                {prod.imageUrl ? (
+                  <div className="h-40 -mx-6 -mt-6 mb-4 overflow-hidden border-b border-slate-100">
+                    <img
+                      src={prod.imageUrl}
+                      alt={prod.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    />
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600">
+                      <Printer className="w-5 h-5" />
+                    </div>
+                  </div>
+                )}
 
                 <h3 className="text-xl font-bold text-slate-900 mb-2">{prod.name}</h3>
                 <p className="text-xs text-slate-500 leading-relaxed mb-6">

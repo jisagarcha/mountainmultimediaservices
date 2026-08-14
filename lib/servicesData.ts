@@ -215,7 +215,7 @@ export const SERVICES_CATALOG: ServiceCategory[] = [
         name: "Flex & Outdoor Banners",
         slug: "flex-outdoor-banners",
         description: "Heavy duty weather-proof Star Flex banners, shop front signboards & glow lightboxes.",
-        imageUrl: "https://images.unsplash.com/photo-1542744094-3a3172720449?auto=format&fit=crop&w=600&q=80",
+        imageUrl: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=600&q=80",
         products: [
           {
             id: "star-flex-banner-print",
@@ -701,13 +701,13 @@ export const SERVICES_CATALOG: ServiceCategory[] = [
     slug: "marketing-tools",
     description: "Tri-fold A4 brochures, single and double sided promotional flyers & custom size variants.",
     iconName: "FileText",
-    imageUrl: "https://images.unsplash.com/photo-1542744094-3a3172720449?auto=format&fit=crop&w=800&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=800&q=80",
     subcategories: [
       {
         id: "brochure",
         name: "Brochure",
         slug: "brochure",
-        imageUrl: "https://images.unsplash.com/photo-1542744094-3a3172720449?auto=format&fit=crop&w=600&q=80",
+        imageUrl: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=600&q=80",
         products: [
           {
             id: "brochure-a4-both-side",
@@ -1308,7 +1308,7 @@ export const SERVICES_CATALOG: ServiceCategory[] = [
         id: "acrylic-signage",
         name: "Acrylic Signage",
         slug: "acrylic-signage",
-        imageUrl: "https://images.unsplash.com/photo-1542744094-3a3172720449?auto=format&fit=crop&w=600&q=80",
+        imageUrl: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=600&q=80",
         products: [
           {
             id: "acrylic-transparent-print",
