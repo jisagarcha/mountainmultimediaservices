@@ -48,7 +48,7 @@ export default function SiteFooter({ branding }: SiteFooterProps) {
               <Link href="/" className="hover:text-rose-600 transition">Home Page</Link>
             </li>
             <li>
-              <Link href="/services" className="hover:text-rose-600 transition">Services Catalog (9 Categories)</Link>
+              <Link href="/services" className="hover:text-rose-600 transition">Services Catalog</Link>
             </li>
             <li>
               <Link href="/about" className="hover:text-rose-600 transition">About</Link>

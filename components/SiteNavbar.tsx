@@ -104,7 +104,7 @@ export default function SiteNavbar({ branding, catalog }: SiteNavbarProps) {
               Home
             </Link>
             <Link href="/services" onClick={() => setMenuOpen(false)} className="block text-sm font-bold text-slate-800 hover:text-rose-600">
-              Services Catalog (9 Categories)
+              Services Catalog
             </Link>
             <Link href="/about" onClick={() => setMenuOpen(false)} className="block text-sm font-bold text-slate-800 hover:text-rose-600">
               About

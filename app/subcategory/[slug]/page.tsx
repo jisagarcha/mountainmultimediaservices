@@ -7,7 +7,25 @@ import * as schema from "@/lib/db/schema";
 import { ArrowRight, Printer } from "lucide-react";
 import Link from "next/link";
 
+import { Metadata } from "next";
+
 export const revalidate = 0;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const match = await getSubcategoryBySlugFromDb(slug);
+  if (!match) return { title: "Subcategory Not Found | Mountain Multimedia" };
+
+  const { subcategory, category } = match;
+  return {
+    title: `${subcategory.name} Printing Services in Bhaktapur | Mountain Multimedia`,
+    description: `High quality ${subcategory.name} (${category.name}) printing in Bhaktapur, Nepal. Fast turnaround, custom sizes, and 1-click WhatsApp order counter.`,
+  };
+}
 
 export default async function SubcategoryPage({
   params,

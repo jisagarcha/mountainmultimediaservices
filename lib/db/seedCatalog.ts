@@ -50,10 +50,11 @@ export async function seedCatalog() {
 
   console.log("🌱 Migration: Ensured categories, subcategories, products tables exist.");
 
-  // Check if categories already seeded
+  // Check if categories and subcategories already seeded
   const existingCats = await db.select().from(schema.categories);
-  if (existingCats.length > 0) {
-    console.log("ℹ️ Catalog already populated in database (Count:", existingCats.length, ")");
+  const existingSubs = await db.select().from(schema.subcategories);
+  if (existingCats.length > 0 && existingSubs.length > 0) {
+    console.log("ℹ️ Catalog already populated in database (Categories:", existingCats.length, "| Subcategories:", existingSubs.length, ")");
     return;
   }
 

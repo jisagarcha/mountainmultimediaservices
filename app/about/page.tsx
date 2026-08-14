@@ -23,9 +23,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { getDbCatalog } from "@/lib/db/queries";
+
 export const revalidate = 0;
 
 export default async function AboutPage() {
+  const catalog = await getDbCatalog();
   const brandingList = await db.select().from(schema.branding).limit(1);
   const branding = brandingList[0] || {};
 
@@ -244,7 +247,7 @@ export default async function AboutPage() {
               OUR COMPLETE SERVICES CATALOG
             </span>
             <h3 className="text-3xl font-black text-slate-950">
-              9 Comprehensive Printing & Studio Categories
+              {serviceCategories.length} Comprehensive Printing & Studio Categories
             </h3>
             <p className="text-slate-500 text-xs sm:text-sm">
               Explore our complete range of design, photo, gift, office, and large-format printing services.
@@ -307,7 +310,7 @@ export default async function AboutPage() {
 
           <div className="p-6 rounded-2xl bg-white border border-slate-100 shadow-md text-center space-y-2">
             <Printer className="w-8 h-8 mx-auto text-rose-500" />
-            <div className="text-2xl font-black text-slate-950">9 Categories</div>
+            <div className="text-2xl font-black text-slate-950">{serviceCategories.length} Categories</div>
             <div className="text-xs text-slate-500">Complete Printing Services Catalog</div>
           </div>
 

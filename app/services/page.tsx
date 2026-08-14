@@ -6,7 +6,14 @@ import * as schema from "@/lib/db/schema";
 import { ArrowRight, Printer, CreditCard, Gift, FileText, BookOpen, Briefcase, Calendar, Shirt, Layers, Camera } from "lucide-react";
 import Link from "next/link";
 
+import { Metadata } from "next";
+
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: "Printing Services Directory in Bhaktapur | Mountain Multimedia",
+  description: "Explore 9 specialized printing categories, 35+ subcategories, and 120+ products at Mountain Multimedia Service in Bhaktapur, Nepal. Fast WhatsApp orders.",
+};
 
 export default async function ServicesPage() {
   const catalog = await getDbCatalog();
@@ -49,7 +56,7 @@ export default async function ServicesPage() {
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="space-y-3">
             <span className="text-xs font-extrabold text-rose-600 uppercase tracking-widest block">
-              OUR SERVICES CATALOG
+              OUR SERVICES CATALOG ({catalog.length} CATEGORIES)
             </span>
             <h1 className="text-3xl sm:text-5xl font-black text-slate-950">
               Printing & Studio Services Directory

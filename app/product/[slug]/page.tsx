@@ -7,7 +7,25 @@ import * as schema from "@/lib/db/schema";
 import { ArrowRight, Phone, ShieldCheck, Printer } from "lucide-react";
 import Link from "next/link";
 
+import { Metadata } from "next";
+
 export const revalidate = 0;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const match = await getProductBySlugFromDb(slug);
+  if (!match) return { title: "Product Not Found | Mountain Multimedia" };
+
+  const { product, category } = match;
+  return {
+    title: `${product.name} - Fast Printing & Specs | Mountain Multimedia Bhaktapur`,
+    description: `Order ${product.name} (${category.name}) with custom specifications & paper options at Mountain Multimedia Service in Dugure, Malpot Road, Bhaktapur. 1-click WhatsApp orders available.`,
+  };
+}
 
 export default async function ProductDetailPage({
   params,

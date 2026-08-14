@@ -166,7 +166,7 @@ export default function ClientLandingPage({
               Home
             </Link>
             <Link href="/services" onClick={() => setMenuOpen(false)} className="block text-sm font-bold text-slate-800 hover:text-rose-600">
-              Services Catalog (9 Categories)
+              Services Catalog
             </Link>
             <Link href="/about" onClick={() => setMenuOpen(false)} className="block text-sm font-bold text-slate-800 hover:text-rose-600">
               About
@@ -304,7 +304,7 @@ export default function ClientLandingPage({
                 EXPLORE CATALOG
               </span>
               <h2 className="text-3xl font-black text-slate-950 mt-2">
-                Our 9 Specialized Printing Categories
+                Our {activeCatalog.length} Specialized Printing Categories
               </h2>
             </div>
             <Link
