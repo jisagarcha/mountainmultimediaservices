@@ -48,8 +48,44 @@ export default async function ProductDetailPage({
     `Hello Mountain Press! I would like to order:\n• Product: ${product.name}\n• Category: ${category.name} > ${subcategory.name}\n• Spec: ${product.paperSpec || "Standard"}\nPlease confirm delivery time for Bhaktapur!`
   );
 
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": product.name,
+    "description": product.description || `Custom ${product.name} printing in Bhaktapur, Nepal.`,
+    "image": product.imageUrl ? (product.imageUrl.startsWith("http") ? product.imageUrl : `https://sagarsandha.com.np${product.imageUrl}`) : "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=80",
+    "category": `${category.name} > ${subcategory.name}`,
+    "brand": {
+      "@type": "Brand",
+      "name": "Mountain Multimedia Service"
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": `https://sagarsandha.com.np/product/${product.slug}`,
+      "priceCurrency": "NPR",
+      "price": product.price || "0.00",
+      "itemCondition": "https://schema.org/NewCondition",
+      "availability": "https://schema.org/InStock",
+      "seller": {
+        "@type": "LocalBusiness",
+        "name": "Mountain Multimedia Service",
+        "telephone": "+977-9841693181",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Dugure, Malpot Road",
+          "addressLocality": "Bhaktapur",
+          "addressCountry": "NP"
+        }
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <SiteNavbar branding={branding} />
 
       {/* Breadcrumb */}

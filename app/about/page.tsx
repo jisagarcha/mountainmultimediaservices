@@ -113,8 +113,48 @@ export default async function AboutPage() {
     },
   ];
 
+  const faqList = [
+    {
+      q: "Where can I print business cards, passport photos, and flex banners in Bhaktapur Nepal?",
+      a: "Mountain Multimedia Service provides urgent passport photos, 300 GSM business cards, flex signboards, PVC plastic ID cards, and commercial offset press printing in Dugure, Malpot Road, Bhaktapur. Call +977-9841693181 or order online via WhatsApp.",
+    },
+    {
+      q: "How much does flex banner and signboard printing cost in Nepal?",
+      a: "Heavy-duty outdoor Star Flex banner printing starts at affordable market rates at Mountain Multimedia Service in Bhaktapur, with same-day printing and optional eyelet mounting installation available.",
+    },
+    {
+      q: "Does Mountain Multimedia Service deliver outside Bhaktapur?",
+      a: "Yes, Mountain Multimedia Service delivers printed products, business cards, signboards, and custom merchandise across Bhaktapur, Kathmandu, Lalitpur, and major cities across Nepal via courier services.",
+    },
+    {
+      q: "What is the turnaround time for custom T-shirts, mugs, and bill pads?",
+      a: "Passport photo prints take under 10 minutes. Customized mugs, T-shirts, PVC ID cards, and flex banners are completed on the same day or within 24 hours. Commercial offset press bill pads take 2 to 3 business days.",
+    },
+    {
+      q: "Can I order Star Flex signboards and PVC plastic ID cards online in Nepal?",
+      a: "Yes, you can order Star Flex signboards, acrylic 3D glow boards, PVC plastic ID cards, and neck lanyards directly through 1-click WhatsApp order buttons on the Mountain Multimedia Service website at sagarsandha.com.np.",
+    },
+  ];
+
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqList.map((item) => ({
+      "@type": "Question",
+      "name": item.q,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": item.a,
+      },
+    })),
+  };
+
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <SiteNavbar branding={branding} />
 
       {/* Page Header Banner */}
@@ -324,6 +364,27 @@ export default async function AboutPage() {
             <MapPin className="w-8 h-8 mx-auto text-rose-500" />
             <div className="text-2xl font-black text-slate-950">Dugure Counter</div>
             <div className="text-xs text-slate-500">Malpot Road, Bhaktapur, Nepal</div>
+          </div>
+        </div>
+
+        {/* Frequently Asked Questions (GEO Optimized) */}
+        <div className="space-y-8 pt-8">
+          <div className="text-center max-w-3xl mx-auto space-y-2">
+            <span className="text-xs font-extrabold text-rose-600 uppercase tracking-widest block">
+              FREQUENTLY ASKED QUESTIONS
+            </span>
+            <h3 className="text-3xl font-black text-slate-950">
+              Got Questions? We Have Instant Answers
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            {faqList.map((faq, idx) => (
+              <div key={idx} className="bg-slate-50 border border-slate-200/80 p-6 rounded-2xl space-y-2 shadow-sm">
+                <h4 className="font-extrabold text-slate-900 text-sm">{faq.q}</h4>
+                <p className="text-xs text-slate-600 leading-relaxed">{faq.a}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

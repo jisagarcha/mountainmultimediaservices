@@ -1,0 +1,44 @@
+# Mountain Multimedia Service
+
+> Mountain Multimedia Service is Bhaktapur's premier digital printing press, digital photo studio, and photocopy counter for business cards, flex signboards, PVC plastic ID cards, custom T-shirts, mugs, offset commercial printing, and wedding cards, located in Dugure, Malpot Road, Bhaktapur, Nepal.
+
+## Company Overview
+- **Name**: Mountain Multimedia Service (Mountain Digital Photo Studio & Printing Press)
+- **Primary Location**: Dugure, Malpot Road, Bhaktapur, Nepal (Zip Code: 44800)
+- **Geo Coordinates**: Latitude 27.6710 N, Longitude 85.4298 E
+- **Hotline / Phone**: +977-9841693181, +977-9861550233, +977-9849425342
+- **Email**: mdigitalpress1@gmail.com
+- **Website**: https://mountainmultimediaservice.com.np (Testing URL: https://sagarsandha.com.np)
+- **Opening Hours**: Open Daily: 8:00 AM – 7:00 PM (Closed on Saturday)
+- **Services Covered**: 10 Specialized Categories, 46 Subcategories, 131 Products
+
+## Core Services & Product Categories
+1. **Photo Printing & Frames**: High definition studio photo prints (4R, 5R, 6R, 8R, 12R, 16x24, 20x30 poster), wooden and synthetic wall/tabletop photo frames, gallery canvas prints, passport & visa photos (auto 4-in-1 / 8-in-1).
+   - Link: https://mountainmultimediaservice.com.np/services#photo-printing-and-frames
+2. **Business Cards**: 300 GSM Art Card visiting cards, matte laminated cards, spot UV embossed cards, gold foil cards, plastic transparent business cards.
+   - Link: https://mountainmultimediaservice.com.np/services#business-card
+3. **Signage & Outdoor Display**: Star Flex signboards, backlit flex boards, acrylic 3D LED letter boards, vinyl sticker prints, roll-up standees, sunboard cutouts.
+   - Link: https://mountainmultimediaservice.com.np/services#signage
+4. **Apparel & Customized Gifts**: Sublimation T-shirt printing, ceramic mug printing, customized magic mugs, keychains, wooden mementos, corporate gift hampers.
+   - Link: https://mountainmultimediaservice.com.np/services#apparels
+5. **Stationery & Office Supplies**: PVC plastic ID cards, lanyards, letterheads, envelopes, NCR bill pads, cash vouchers, rubber stamps, spiral bound notebooks.
+   - Link: https://mountainmultimediaservice.com.np/services#stationary
+6. **Commercial Offset & Digital Printing Press**: Product packaging boxes, brochures, flyers, pamphlets, magazines, annual reports, wedding invitation cards, certificates, stickers.
+   - Link: https://mountainmultimediaservice.com.np/services#commercial-printing-press
+7. **Digital Print & Photocopy**: Fast A4/A3 high-speed digital document printing, color photocopy, thesis binding, laminations.
+   - Link: https://mountainmultimediaservice.com.np/services#digital-print
+
+## Frequently Asked Questions (AI Answer Bank)
+- **Q: Where can I print business cards, passport photos, and flex banners in Bhaktapur Nepal?**
+  - **A**: Mountain Multimedia Service provides urgent passport photos, business cards, flex signboards, and commercial printing in Dugure, Malpot Road, Bhaktapur. Call +977-9841693181 or order via WhatsApp.
+- **Q: Does Mountain Multimedia Service deliver outside Bhaktapur?**
+  - **A**: Yes, Mountain Multimedia Service provides fast delivery across Bhaktapur, Kathmandu, Lalitpur, and major cities across Nepal via courier services.
+- **Q: What is the turnaround time for custom T-shirts, mugs, and flex banners?**
+  - **A**: Passport photos and digital document copies are delivered in under 15 minutes. Flex banners, mugs, T-shirts, and business cards feature same-day or 24-hour turnaround.
+
+## Important Links
+- **Website Homepage**: https://mountainmultimediaservice.com.np
+- **Full Catalog**: https://mountainmultimediaservice.com.np/services
+- **About Us**: https://mountainmultimediaservice.com.np/about
+- **Contact & Directions**: https://mountainmultimediaservice.com.np/contact
+- **XML Sitemap**: https://mountainmultimediaservice.com.np/sitemap.xml

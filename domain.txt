@@ -2,9 +2,11 @@
       COMPLETE DOMAIN, SSL & NEW SERVER SETUP GUIDE (domain.txt)
 ====================================================================
 
-Domain Target: sagarsandha.com.np / www.sagarsandha.com.np
+Domain Target: mountainmultimediaservice.com.np / sagarsandha.com.np (Testing)
 Server IP Target: 134.209.3.139
 Internal App Port: 3001
+
+Note: Change NEXT_PUBLIC_SITE_URL=https://mountainmultimediaservice.com.np in your server .env file when switching domain!
 
 --------------------------------------------------------------------
 METHOD / PHASE 1: DNS RECORDS CONFIGURATION
