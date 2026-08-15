@@ -25,9 +25,9 @@ export default function SiteNavbar({ branding, catalog }: SiteNavbarProps) {
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100 px-6 py-4 transition-all">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-md shadow-slate-900/10 group-hover:scale-105 transition shrink-0 overflow-hidden">
+            <div className="w-10 h-10 rounded-xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-center group-hover:scale-105 transition shrink-0 overflow-hidden p-1">
               {branding?.logoUrl ? (
-                <img src={branding.logoUrl} alt={siteName} className="w-full h-full object-contain p-1" />
+                <img src={branding.logoUrl} alt={siteName} className="w-full h-full object-contain" />
               ) : (
                 <Mountain className="w-5 h-5 text-rose-500" />
               )}

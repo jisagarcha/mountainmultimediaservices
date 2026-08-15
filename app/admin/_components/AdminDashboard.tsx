@@ -444,9 +444,9 @@ export default function AdminDashboard({
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-full bg-slate-950 text-white flex items-center justify-center shadow-md shrink-0 overflow-hidden">
+            <div className="w-10 h-10 rounded-xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-center shrink-0 overflow-hidden p-1">
               {branding.logoUrl ? (
-                <img src={branding.logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
+                <img src={branding.logoUrl} alt="Logo" className="w-full h-full object-contain" />
               ) : (
                 <Mountain className="w-5 h-5 text-rose-500" />
               )}
@@ -615,7 +615,7 @@ export default function AdminDashboard({
                   <span className="text-xs font-black text-slate-700 uppercase tracking-wider block">
                     Website Header Logo
                   </span>
-                  <div className="w-24 h-24 mx-auto rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center p-3 shadow-md overflow-hidden shrink-0">
+                  <div className="w-24 h-24 mx-auto rounded-2xl bg-white border border-slate-200 flex items-center justify-center p-2 shadow-md overflow-hidden shrink-0">
                     {branding.logoUrl ? (
                       <img src={branding.logoUrl} alt="Logo Preview" className="w-full h-full object-contain" />
                     ) : (

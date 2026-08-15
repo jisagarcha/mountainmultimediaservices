@@ -49,9 +49,9 @@ export default function AdminLoginFormClient({ branding }: AdminLoginFormClientP
       <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-full bg-slate-950 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition shrink-0 overflow-hidden">
+            <div className="w-10 h-10 rounded-xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-center group-hover:scale-105 transition shrink-0 overflow-hidden p-1">
               {branding?.logoUrl ? (
-                <img src={branding.logoUrl} alt={siteName} className="w-full h-full object-contain p-1" />
+                <img src={branding.logoUrl} alt={siteName} className="w-full h-full object-contain" />
               ) : (
                 <Mountain className="w-5 h-5 text-rose-500" />
               )}
@@ -80,7 +80,7 @@ export default function AdminLoginFormClient({ branding }: AdminLoginFormClientP
       <main className="flex-1 flex items-center justify-center p-6 py-16">
         <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-3xl p-8 sm:p-10 shadow-2xl shadow-slate-200/60 relative z-10 space-y-8">
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-950 text-white mb-2 shadow-md overflow-hidden p-2.5 shrink-0">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white border border-slate-200/80 shadow-md overflow-hidden p-2 shrink-0 mb-2">
               {branding?.logoUrl ? (
                 <img src={branding.logoUrl} alt={siteName} className="w-full h-full object-contain" />
               ) : (
