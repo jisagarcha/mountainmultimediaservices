@@ -66,6 +66,14 @@ export const metadata: Metadata = {
     description: "High definition studio printing, flex signboards, PVC ID cards, and offset press in Dugure, Malpot Road, Bhaktapur.",
     images: ["https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=80"],
   },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-light-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    shortcut: "/icon-light-32x32.png",
+    apple: "/icon-light-32x32.png",
+  },
 };
 
 export const viewport: Viewport = {
