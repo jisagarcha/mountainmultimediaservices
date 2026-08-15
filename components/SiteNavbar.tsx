@@ -33,10 +33,10 @@ export default function SiteNavbar({ branding, catalog }: SiteNavbarProps) {
               )}
             </div>
             <div>
-              <span className="text-xl font-black tracking-tight text-slate-950 block leading-none whitespace-nowrap">
+              <span className="text-base sm:text-xl font-black tracking-tight text-slate-950 block leading-none truncate max-w-[170px] sm:max-w-none">
                 {siteName}
               </span>
-              <span className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase block mt-1 whitespace-nowrap">
+              <span className="text-[9px] sm:text-[10px] text-slate-500 font-semibold tracking-wider uppercase block mt-1 truncate max-w-[170px] sm:max-w-none">
                 {branding?.tagline || "Printing Press & Studio"}
               </span>
             </div>
@@ -70,14 +70,14 @@ export default function SiteNavbar({ branding, catalog }: SiteNavbarProps) {
 
           <div className="hidden md:flex items-center gap-6">
             <a
-              href="tel:+9779841693181"
+              href={`tel:+977${primaryPhone}`}
               className="text-right group flex flex-col items-end"
             >
               <span className="text-[10px] font-extrabold text-rose-600 uppercase tracking-widest block">
                 HOTLINE:
               </span>
               <span className="text-xs font-extrabold text-slate-900 group-hover:text-rose-600 transition">
-                +977-9841693181
+                +977-{primaryPhone}
               </span>
             </a>
 
@@ -91,27 +91,45 @@ export default function SiteNavbar({ branding, catalog }: SiteNavbarProps) {
 
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden p-2 rounded-xl bg-slate-100 text-slate-800"
+            className="md:hidden p-2 rounded-xl bg-slate-100 text-slate-800 hover:bg-slate-200 transition"
+            aria-label="Toggle Navigation Menu"
           >
-            {menuOpen ? <X /> : <Menu />}
+            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
 
         {/* Mobile Dropdown */}
         {menuOpen && (
-          <div className="md:hidden pt-4 pb-2 border-t border-slate-100 mt-4 space-y-3 px-2">
-            <Link href="/" onClick={() => setMenuOpen(false)} className="block text-sm font-bold text-slate-800 hover:text-rose-600">
+          <div className="md:hidden pt-4 pb-3 border-t border-slate-100 mt-4 space-y-3 px-2 animate-in fade-in slide-in-from-top-1 duration-150">
+            <Link href="/" onClick={() => setMenuOpen(false)} className="block text-sm font-bold text-slate-800 hover:text-rose-600 py-1">
               Home
             </Link>
-            <Link href="/services" onClick={() => setMenuOpen(false)} className="block text-sm font-bold text-slate-800 hover:text-rose-600">
-              Services
+            <Link href="/services" onClick={() => setMenuOpen(false)} className="block text-sm font-bold text-slate-800 hover:text-rose-600 py-1">
+              Services Catalog
             </Link>
-            <Link href="/about" onClick={() => setMenuOpen(false)} className="block text-sm font-bold text-slate-800 hover:text-rose-600">
+            <Link href="/about" onClick={() => setMenuOpen(false)} className="block text-sm font-bold text-slate-800 hover:text-rose-600 py-1">
               About
             </Link>
-            <Link href="/contact" onClick={() => setMenuOpen(false)} className="block text-sm font-bold text-slate-800 hover:text-rose-600">
+            <Link href="/contact" onClick={() => setMenuOpen(false)} className="block text-sm font-bold text-slate-800 hover:text-rose-600 py-1">
               Contact Us
             </Link>
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+              <a
+                href={`tel:+977${primaryPhone}`}
+                className="px-4 py-2.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 text-xs font-black flex items-center gap-1.5"
+              >
+                <Phone className="w-3.5 h-3.5" />
+                <span>Call Hotline</span>
+              </a>
+              <Link
+                href="/contact"
+                onClick={() => setMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl bg-slate-950 text-white text-xs font-black flex items-center gap-1.5"
+              >
+                <span>Get Location</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
         )}
       </header>
