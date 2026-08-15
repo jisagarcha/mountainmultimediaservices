@@ -1,0 +1,139 @@
+====================================================================
+      COMPLETE DOMAIN, SSL & NEW SERVER SETUP GUIDE (domain.txt)
+====================================================================
+
+Domain Target: sagarsandha.com.np / www.sagarsandha.com.np
+Server IP Target: 134.209.3.139
+Internal App Port: 3001
+
+--------------------------------------------------------------------
+METHOD / PHASE 1: DNS RECORDS CONFIGURATION
+--------------------------------------------------------------------
+In your Domain Registrar DNS Management dashboard (Cloudflare, Namecheap, etc.):
+
+1. Add Record 1:
+   Type:  A
+   Name:  @ (or sagarsandha.com.np)
+   Value: 134.209.3.139
+   TTL:   Auto / 3600
+
+2. Add Record 2:
+   Type:  A
+   Name:  www
+   Value: 134.209.3.139
+   TTL:   Auto / 3600
+
+
+--------------------------------------------------------------------
+METHOD / PHASE 2: NEW SERVER INITIALIZATION & DOCKER
+--------------------------------------------------------------------
+SSH into your clean Linux VPS server:
+ssh root@134.209.3.139
+
+1. Install Docker:
+   curl -fsSL https://get.docker.com | sh
+
+2. Create Application Directory & Environment File:
+   mkdir -p ~/mountain-app && cd ~/mountain-app
+   mkdir -p data
+
+   Create .env file:
+   cat << 'EOF' > .env
+   NODE_ENV=production
+   PORT=3000
+   BETTER_AUTH_SECRET=mountain_multimedia_secret_key_2026
+   BETTER_AUTH_URL=https://sagarsandha.com.np
+   EOF
+
+3. Pull & Launch Docker Container:
+   docker pull jisagarcha/mountain-multimedia:latest
+   docker run -d \
+     --name mountain-multimedia-web \
+     --restart unless-stopped \
+     --env-file .env \
+     -p 3001:3000 \
+     -v ./data:/app/data \
+     jisagarcha/mountain-multimedia:latest
+
+
+--------------------------------------------------------------------
+METHOD / PHASE 3: NGINX REVERSE PROXY CONFIGURATION
+--------------------------------------------------------------------
+1. Install Nginx:
+   sudo apt update && sudo apt install -y nginx
+
+2. Create Nginx Configuration for Domain:
+   cat << 'EOF' > /etc/nginx/sites-available/sagarsandha.com.np
+   server {
+       listen 80;
+       server_name sagarsandha.com.np www.sagarsandha.com.np;
+
+       client_max_body_size 50M;
+
+       location / {
+           proxy_pass http://127.0.0.1:3001;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
+   EOF
+
+3. Enable Site & Test Nginx:
+   sudo ln -s /etc/nginx/sites-available/sagarsandha.com.np /etc/nginx/sites-enabled/
+   sudo rm /etc/nginx/sites-enabled/default 2>/dev/null || true
+   sudo nginx -t
+   sudo systemctl reload nginx
+
+
+--------------------------------------------------------------------
+METHOD / PHASE 4: FREE SSL/HTTPS CERTIFICATE (Certbot)
+--------------------------------------------------------------------
+1. Install Certbot for Nginx:
+   sudo apt install -y certbot python3-certbot-nginx
+
+2. Obtain & Automatically Install Let's Encrypt SSL:
+   sudo certbot --nginx -d sagarsandha.com.np -d www.sagarsandha.com.np
+
+   (Follow the prompts, enter email, and select option to redirect HTTP to HTTPS)
+
+3. Verify SSL Auto-Renewal:
+   sudo certbot renew --dry-run
+
+
+--------------------------------------------------------------------
+METHOD / PHASE 5: INITIAL DATABASE & ADMIN PROVISIONING
+--------------------------------------------------------------------
+1. Register Admin Account:
+   curl -X POST http://127.0.0.1:3001/api/auth/sign-up/email \
+     -H "Content-Type: application/json" \
+     -H "Origin: https://sagarsandha.com.np" \
+     -d '{"email":"admin@mountainmultimedia.com","password":"AdminPassword123!","name":"Admin User"}'
+
+2. Seed Services Catalog Data (10 Categories, 46 Subcategories, 131 Products):
+   docker exec -i mountain-multimedia-web node -e '
+   const Database = require("better-sqlite3");
+   const fs = require("fs");
+   const db = new Database("/app/data/app.db");
+   const sql = fs.readFileSync("/app/seed.sql", "utf8");
+   const stmts = sql.split(";").filter(s => s.trim().length > 0);
+   for (const s of stmts) { try { db.exec(s + ";"); } catch(e) { console.error(e.message); } }
+   const c = db.prepare("SELECT COUNT(*) as n FROM categories").get();
+   const s2 = db.prepare("SELECT COUNT(*) as n FROM subcategories").get();
+   const p = db.prepare("SELECT COUNT(*) as n FROM products").get();
+   console.log("Seeded:", c.n, "categories,", s2.n, "subcategories,", p.n, "products");
+   '
+
+
+--------------------------------------------------------------------
+METHOD / PHASE 6: FINAL CHECKLIST
+--------------------------------------------------------------------
+[x] HTTPS Website: https://sagarsandha.com.np
+[x] Admin Login: https://sagarsandha.com.np/admin/login
+[x] SSL Auto-Renewal Active via Certbot timer
+====================================================================

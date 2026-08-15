@@ -1,0 +1,138 @@
+====================================================================
+      SQLITE DATABASE MIGRATION, BACKUP & RESTORE GUIDE (database.txt)
+====================================================================
+
+Database File Location:
+- On VPS Host:      ./data/app.db
+- Inside Container: /app/data/app.db
+
+Complete Schema Tables (14 Tables):
+- Application Data: branding, categories, subcategories, products, services,
+                    gallery, testimonials, page_sections, contact_messages,
+                    site_settings
+- Authentication:   users, sessions, accounts, verifications
+
+====================================================================
+METHOD 1: DIRECT BINARY BACKUP & TRANSFER (Recommended - 100% Lossless)
+====================================================================
+Use this method to migrate the exact live database (including registered admin
+users, sessions, custom products, uploaded images, and inquiries) to a new server.
+
+STEP 1.1 — Safe Checkpoint on Source Server:
+Run on the source server to flush WAL (Write-Ahead Logging) into app.db:
+
+sqlite3 ./data/app.db "PRAGMA wal_checkpoint(FULL);"
+sqlite3 ./data/app.db ".backup ./data/app.db.bak"
+
+(If sqlite3 CLI is not installed on host, run via container:)
+docker exec -i mountain-multimedia-web node -e '
+const Database = require("better-sqlite3");
+const db = new Database("/app/data/app.db");
+db.pragma("wal_checkpoint(FULL)");
+db.backup("/app/data/app.db.bak").then(() => console.log("Backup complete!"));
+'
+
+
+STEP 1.2 — Transfer Backup File to Target Server:
+Option A: Direct SCP from Source Server to Target Server:
+scp ./data/app.db.bak root@<TARGET_SERVER_IP>:~/mountain-app/data/app.db
+
+Option B: Download to Local Mac then Upload to Target Server:
+# Download from Source:
+scp root@<SOURCE_SERVER_IP>:~/mountain-app/data/app.db.bak ./local-app.db
+
+# Upload to Target:
+scp ./local-app.db root@<TARGET_SERVER_IP>:~/mountain-app/data/app.db
+
+
+STEP 1.3 — Restore Database on Target Server:
+Run on the target server:
+
+cd ~/mountain-app
+docker stop mountain-multimedia-web 2>/dev/null || true
+
+# Fix permissions for Docker container user (UID 1001 / Next.js):
+chmod -R 777 ./data
+
+docker start mountain-multimedia-web
+
+
+====================================================================
+METHOD 2: FULL SQL DUMP & RESTORE (Text Format Portability)
+====================================================================
+Use this method if binary format causes version issues.
+
+STEP 2.1 — Generate Complete SQL Dump on Source Server:
+sqlite3 ./data/app.db ".dump" > full_database_dump.sql
+
+STEP 2.2 — Transfer SQL Dump to Target Server:
+scp full_database_dump.sql root@<TARGET_SERVER_IP>:~/mountain-app/
+
+STEP 2.3 — Restore SQL Dump into Target Database:
+Run on the target server:
+
+cd ~/mountain-app
+docker stop mountain-multimedia-web 2>/dev/null || true
+rm -f ./data/app.db ./data/app.db-shm ./data/app.db-wal
+sqlite3 ./data/app.db < full_database_dump.sql
+chmod -R 777 ./data
+docker start mountain-multimedia-web
+
+
+====================================================================
+METHOD 3: FRESH INSTALL CATALOG SEED (Catalog & Admin Reset)
+====================================================================
+Use this method for a completely fresh server setup where you want default catalog data.
+
+1. Seed Admin User Account:
+curl -X POST http://127.0.0.1:3001/api/auth/sign-up/email \
+  -H "Content-Type: application/json" \
+  -H "Origin: https://sagarsandha.com.np" \
+  -d '{"email":"admin@mountainmultimedia.com","password":"AdminPassword123!","name":"Admin User"}'
+
+2. Seed 10 Categories, 46 Subcategories, 131 Products:
+docker exec -i mountain-multimedia-web node -e '
+const Database = require("better-sqlite3");
+const fs = require("fs");
+const db = new Database("/app/data/app.db");
+const sql = fs.readFileSync("/app/seed.sql", "utf8");
+const stmts = sql.split(";").filter(s => s.trim().length > 0);
+for (const s of stmts) { try { db.exec(s + ";"); } catch(e) { console.error(e.message); } }
+console.log("Database successfully seeded!");
+'
+
+
+====================================================================
+METHOD 4: VERIFICATION & INTEGRITY CHECK (Post-Migration)
+====================================================================
+Run on Target Server after any migration method to verify complete data integrity:
+
+1. SQLite Database Integrity Check:
+sqlite3 ./data/app.db "PRAGMA integrity_check;"
+# Expected output: ok
+
+2. Table & Record Count Verification:
+docker exec -i mountain-multimedia-web node -e '
+const Database = require("better-sqlite3");
+const db = new Database("/app/data/app.db");
+const tables = ["categories", "subcategories", "products", "branding", "page_sections", "users", "accounts", "contact_messages"];
+for (const t of tables) {
+  try {
+    const row = db.prepare(`SELECT COUNT(*) as count FROM ${t}`).get();
+    console.log(`Table ${t.padEnd(20)} : ${row.count} records`);
+  } catch(e) {
+    console.log(`Table ${t.padEnd(20)} : MISSING (${e.message})`);
+  }
+}
+'
+
+Expected Output Example:
+Table categories           : 10 records
+Table subcategories        : 46 records
+Table products             : 131 records
+Table branding             : 1 records
+Table page_sections        : 4 records
+Table users                : 1 records
+Table accounts             : 1 records
+Table contact_messages     : 0 records
+====================================================================
