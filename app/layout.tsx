@@ -6,12 +6,13 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://mountainmultimedias
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Mountain Multimedia Service | Digital Printing Press & Studio Bhaktapur",
-    template: "%s | Mountain Multimedia Service",
+    default: "Mountain Multimedia",
+    template: "%s | Mountain Multimedia",
   },
   description:
     "Mountain Multimedia Service in Dugure, Malpot Road, Bhaktapur. High-definition studio photo printing, passport photos, Star Flex signboards, PVC plastic ID cards, commercial offset printing, custom T-shirt & mug printing, wedding invitation cards, and fast photocopying.",
   keywords: [
+    "Mountain Multimedia",
     "Mountain Multimedia Service",
     "photo studio Bhaktapur",
     "printing press Bhaktapur",
@@ -22,14 +23,11 @@ export const metadata: Metadata = {
     "flex signboard printing Bhaktapur",
     "wedding cards printing Bhaktapur",
     "T-shirt mug printing Bhaktapur",
-    "offset printing press Nepal",
-    "प्रिन्टिङ भक्तपुर",
-    "डिजिटल फोटो स्टुडियो भक्तपुर",
-    "फोटोकपी दुगुरे"
+    "offset printing press Nepal"
   ],
-  authors: [{ name: "Mountain Multimedia Service", url: siteUrl }],
-  creator: "Mountain Multimedia Service",
-  publisher: "Mountain Multimedia Service",
+  authors: [{ name: "Mountain Multimedia", url: siteUrl }],
+  creator: "Mountain Multimedia",
+  publisher: "Mountain Multimedia",
   robots: {
     index: true,
     follow: true,
@@ -48,31 +46,31 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: siteUrl,
-    title: "Mountain Multimedia Service | Digital Printing & Photo Studio Bhaktapur",
+    title: "Mountain Multimedia",
     description: "Bhaktapur's trusted digital printing press & photo studio in Dugure, Malpot Road. Fast same-day turnaround & WhatsApp orders.",
-    siteName: "Mountain Multimedia Service",
+    siteName: "Mountain Multimedia",
     images: [
       {
-        url: "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=80",
+        url: "/uploads/1786733686188-jj06svs.png",
         width: 1200,
         height: 630,
-        alt: "Mountain Multimedia Service - Printing Press & Studio Bhaktapur",
+        alt: "Mountain Multimedia",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Mountain Multimedia Service | Printing & Photo Studio Bhaktapur",
+    title: "Mountain Multimedia",
     description: "High definition studio printing, flex signboards, PVC ID cards, and offset press in Dugure, Malpot Road, Bhaktapur.",
-    images: ["https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=80"],
+    images: ["/uploads/1786733686188-jj06svs.png"],
   },
   icons: {
     icon: [
+      { url: "/uploads/1786733686188-jj06svs.png", type: "image/png" },
       { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/icon-light-32x32.png", sizes: "32x32", type: "image/png" },
     ],
-    shortcut: "/icon-light-32x32.png",
-    apple: "/icon-light-32x32.png",
+    shortcut: "/uploads/1786733686188-jj06svs.png",
+    apple: "/uploads/1786733686188-jj06svs.png",
   },
 };
 

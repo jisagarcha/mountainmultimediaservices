@@ -8,7 +8,7 @@ import { Metadata } from "next";
 export const revalidate = 0; // Dynamic server rendering with SQLite
 
 export const metadata: Metadata = {
-  title: "Bhaktapur's #1 Express Digital Press & Photo Studio | Mountain Multimedia",
+  title: "Mountain Multimedia",
   description: "10-minute passport photos, 300 GSM business cards, PVC plastic ID cards, 3D LED glow signboards & commercial printing press in Dugure, Malpot Road, Bhaktapur.",
 };
 
