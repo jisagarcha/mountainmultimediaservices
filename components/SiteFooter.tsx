@@ -66,19 +66,19 @@ export default function SiteFooter({ branding }: SiteFooterProps) {
           </span>
           <ul className="space-y-2.5 font-medium">
             <li>
-              <Link href="/services/digital-photo-studio" className="hover:text-rose-600">Passport & Visa Photos</Link>
+              <Link href="/services#photo-printing-and-frames" className="hover:text-rose-600">Passport & Visa Photos</Link>
             </li>
             <li>
-              <Link href="/services/pvc-id-cards" className="hover:text-rose-600">PVC Plastic ID Cards</Link>
+              <Link href="/services#stationary" className="hover:text-rose-600">PVC Plastic ID Cards</Link>
             </li>
             <li>
-              <Link href="/services/flex-print" className="hover:text-rose-600">Outdoor Flex Signboards</Link>
+              <Link href="/services#signage" className="hover:text-rose-600">Outdoor Flex Signboards</Link>
             </li>
             <li>
-              <Link href="/services/tshirt-printing" className="hover:text-rose-600">Custom T-Shirt & Mug Printing</Link>
+              <Link href="/services#apparels" className="hover:text-rose-600">Custom T-Shirt & Mug Printing</Link>
             </li>
             <li>
-              <Link href="/services/visiting-cards" className="hover:text-rose-600">Business Cards</Link>
+              <Link href="/services#business-card" className="hover:text-rose-600">Business Cards</Link>
             </li>
           </ul>
         </div>
